@@ -1,6 +1,5 @@
-# Clair3 full alignment parameters
-TOOL_NAME = "clair3_trio"
-VERSION='v0.7.1'
+TOOL_NAME = "clair3_denovo"
+VERSION='v0.1'
 
 from itertools import accumulate
 
@@ -55,6 +54,11 @@ ont_input_shape_trio = [matrix_depth_dict['ont'] * 3, no_of_positions, channel_s
 label_shape_trio = label_shape * 3
 label_size_trio = label_size * 3
 label_shape_cum_trio = list(accumulate(label_shape_trio))
+
+# add 2 dims [not_denovo, denovo]
+label_size_trio_denovo = label_size * 3 + 2
+label_shape_trio_denovo = label_shape * 3 + [2]
+label_shape_cum_trio_denovo = list(accumulate(label_shape_trio_denovo))
 
 # make sure each alt info. length <= 5000
 max_alt_info_length = 5000 * 3

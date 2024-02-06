@@ -38,6 +38,8 @@ params = dict(
             L4_num_units=256,
             L4_pileup_num_units=128,
             L4_dropout_rate=0.5,
+            L5_0_num_units=128,
+            L5_0_dropout_rate=0.2,
             L5_1_num_units=128,
             L5_1_dropout_rate=0.2,
             L5_2_num_units=128,
@@ -826,6 +828,190 @@ class Clair3_Trio_Out3(tf.keras.Model):
               p2_y_gt21_logits, p2_y_genotype_logits, p2_y_indel_length_logits_1, p2_y_indel_length_logits_2]
 
 
+class Clair3_Trio_Out3_denovo(tf.keras.Model):
+    # Residual CNN model for clair3 full alignment input
+    def __init__(self, add_indel_length=False, predict=False, is_padding=False, add_mcv_loss=False):
+        super(Clair3_Trio_Out3_denovo, self).__init__()
+        self.output_gt21_shape = params['output_gt21_shape']
+        self.output_genotype_shape = params['output_genotype_shape']
+        self.output_denovo_shape = 2
+        self.output_indel_length_shape_1 = params['output_indel_length_shape_1']
+        self.output_indel_length_shape_2 = params['output_indel_length_shape_2']
+
+        self.L3_dropout_rate = params['L3_dropout_rate']
+        self.L4_num_units = params['L4_num_units']
+        self.L4_dropout_rate = params['L4_dropout_rate']
+        self.L5_0_num_units = params['L5_0_num_units']
+        self.L5_0_dropout_rate = params['L5_0_dropout_rate']
+        self.L5_1_num_units = params['L5_1_num_units']
+        self.L5_1_dropout_rate = params['L5_1_dropout_rate']
+        self.L5_2_num_units = params['L5_2_num_units']
+        self.L5_2_dropout_rate = params['L5_2_dropout_rate']
+        self.L5_3_num_units = params['L5_3_num_units']
+        self.L5_3_dropout_rate = params['L5_3_dropout_rate']
+        self.L5_4_num_units = params['L5_4_num_units']
+        self.L5_4_dropout_rate = params['L5_4_dropout_rate']
+
+        self.output_label_split = [
+            self.output_gt21_shape,
+            self.output_genotype_shape,
+            self.output_indel_length_shape_1,
+            self.output_indel_length_shape_2,
+            self.output_gt21_shape,
+            self.output_genotype_shape,
+            self.output_indel_length_shape_1,
+            self.output_indel_length_shape_2,
+            self.output_gt21_shape,
+            self.output_genotype_shape,
+            self.output_indel_length_shape_1,
+            self.output_indel_length_shape_2
+        ]
+
+        # legacy
+        self.add_indel_length = add_indel_length
+        self.is_padding = is_padding
+        self.add_mcv_loss = add_mcv_loss
+        self.predict = predict
+
+
+        self.conv1 = BasicConv2D(filters=64,
+                                 kernel_size=(3, 3),
+                                 strides=2,
+                                 padding="same",)
+
+        self.res_block1 = make_basic_block_layer(filter_num=64,
+                                            blocks=1, stride=1, SeparableConv=False)
+
+        self.conv3 = BasicConv2D(filters=128,
+                                 kernel_size=(3, 3),
+                                 strides=2,
+                                 padding="same")
+
+        self.res_block2 = make_basic_block_layer(filter_num=128,
+                                            blocks=1, stride=1, SeparableConv=False)
+
+        self.conv5 = BasicConv2D(filters=256,
+                                 kernel_size=(3, 3),
+                                 strides=2,
+                                 padding="same")
+
+        self.res_block3 = make_basic_block_layer(filter_num=256,
+                                            blocks=1, stride=1)
+
+        self.pyramidpolling = PyramidPolling()
+
+        self.L3_dropout = tf.keras.layers.Dropout(rate=self.L3_dropout_rate)
+
+        self.flatten = tf.keras.layers.Flatten()
+
+        self.L4 = tf.keras.layers.Dense(units=self.L4_num_units, activation='selu',kernel_regularizer=L2_regularizers)
+        self.L4_dropout = tf.keras.layers.Dropout(rate=self.L4_dropout_rate, seed=param.OPERATION_SEED)
+
+        self.L5_1 = tf.keras.layers.Dense(units=self.L5_1_num_units, activation='selu', kernel_regularizer=L2_regularizers)
+        self.L5_1_dropout = tf.keras.layers.Dropout(rate=self.L5_1_dropout_rate, seed=param.OPERATION_SEED)
+
+        self.L5_2 = tf.keras.layers.Dense(units=self.L5_2_num_units, activation='selu', kernel_regularizer=L2_regularizers)
+        self.L5_2_dropout = tf.keras.layers.Dropout(rate=self.L5_2_dropout_rate, seed=param.OPERATION_SEED)
+
+        self.L5_3 = tf.keras.layers.Dense(units=self.L5_3_num_units, activation='selu', kernel_regularizer=L2_regularizers)
+        self.L5_3_dropout = tf.keras.layers.Dropout(rate=self.L5_3_dropout_rate, seed=param.OPERATION_SEED)
+
+        self.L5_4 = tf.keras.layers.Dense(units=self.L5_4_num_units, activation='selu', kernel_regularizer=L2_regularizers)
+        self.L5_4_dropout = tf.keras.layers.Dropout(rate=self.L5_4_dropout_rate, seed=param.OPERATION_SEED)
+
+        self.c_Y_gt21_logits = tf.keras.layers.Dense(units=self.output_gt21_shape, activation='selu', kernel_regularizer=L2_regularizers)
+        self.c_Y_genotype_logits = tf.keras.layers.Dense(units=self.output_genotype_shape, activation='selu', kernel_regularizer=L2_regularizers)
+        self.c_Y_indel_length_logits_1 = tf.keras.layers.Dense(units=self.output_indel_length_shape_1, activation='selu',kernel_regularizer=L2_regularizers)
+        self.c_Y_indel_length_logits_2 = tf.keras.layers.Dense(units=self.output_indel_length_shape_2, activation='selu',kernel_regularizer=L2_regularizers)
+
+        self.p1_Y_gt21_logits = tf.keras.layers.Dense(units=self.output_gt21_shape, activation='selu', kernel_regularizer=L2_regularizers)
+        self.p1_Y_genotype_logits = tf.keras.layers.Dense(units=self.output_genotype_shape, activation='selu', kernel_regularizer=L2_regularizers)
+        self.p1_Y_indel_length_logits_1 = tf.keras.layers.Dense(units=self.output_indel_length_shape_1, activation='selu',kernel_regularizer=L2_regularizers)
+        self.p1_Y_indel_length_logits_2 = tf.keras.layers.Dense(units=self.output_indel_length_shape_2, activation='selu',kernel_regularizer=L2_regularizers)
+
+        self.p2_Y_gt21_logits = tf.keras.layers.Dense(units=self.output_gt21_shape, activation='selu', kernel_regularizer=L2_regularizers)
+        self.p2_Y_genotype_logits = tf.keras.layers.Dense(units=self.output_genotype_shape, activation='selu', kernel_regularizer=L2_regularizers)
+        self.p2_Y_indel_length_logits_1 = tf.keras.layers.Dense(units=self.output_indel_length_shape_1, activation='selu',kernel_regularizer=L2_regularizers)
+        self.p2_Y_indel_length_logits_2 = tf.keras.layers.Dense(units=self.output_indel_length_shape_2, activation='selu',kernel_regularizer=L2_regularizers)
+
+        self.L5_0 = tf.keras.layers.Dense(units=self.L5_0_num_units, activation='selu', kernel_regularizer=L2_regularizers)
+        self.L5_0_dropout = tf.keras.layers.Dropout(rate=self.L5_0_dropout_rate, seed=param.OPERATION_SEED)
+
+        self.Y_denovo_logits = tf.keras.layers.Dense(units=self.output_denovo_shape, activation='selu', kernel_regularizer=L2_regularizers)
+
+        self.softmax = tf.keras.layers.Softmax()
+        # self.regularization = MyActivityRegularizer(1e-2)
+
+    def call(self, inputs):
+
+        # if self.is_padding:
+        #     i1 = inputs[:,:,:,:-1]
+        #     i2 = inputs[:,:,:,-1:]
+        #     i1 = tf.cast(i1, tf.float32) / param.NORMALIZE_NUM
+        #     i2 = tf.cast(i2, tf.float32)
+        #     x = tf.concat([i1, i2], -1)
+        # else:
+        #     x = tf.cast(inputs, tf.float32) / param.NORMALIZE_NUM
+
+        x = tf.cast(inputs, tf.float32) / param.NORMALIZE_NUM
+    
+        # import pdb; pdb.set_trace()
+
+        x = self.conv1(x)
+        x = self.res_block1(x)
+        x = self.conv3(x)
+        x = self.res_block2(x)
+        x = self.conv5(x)
+        x = self.res_block3(x)
+        x = self.pyramidpolling(x)
+        x = self.flatten(self.L3_dropout(x))
+
+        x = self.L4(x)
+        x = self.L4_dropout(x)
+
+        l5_0_dropout = self.L5_0_dropout(self.L5_0(x))
+
+        l5_1_dropout = self.L5_1_dropout(self.L5_1(x))
+
+        l5_2_dropout = self.L5_2_dropout(self.L5_2(x))
+
+        l5_3_dropout = self.L5_3_dropout(self.L5_3(x))
+
+        l5_4_dropout = self.L5_4_dropout(self.L5_4(x))
+
+
+        c_y_gt21_logits = self.softmax(self.c_Y_gt21_logits(l5_1_dropout))
+        c_y_genotype_logits = self.softmax(self.c_Y_genotype_logits(l5_2_dropout))
+        c_y_indel_length_logits_1 = self.softmax(self.c_Y_indel_length_logits_1(l5_3_dropout))
+        c_y_indel_length_logits_2 = self.softmax(self.c_Y_indel_length_logits_2(l5_4_dropout))
+
+
+        p1_y_gt21_logits = self.softmax(self.p1_Y_gt21_logits(l5_1_dropout))
+        p1_y_genotype_logits = self.softmax(self.p1_Y_genotype_logits(l5_2_dropout))
+        p1_y_indel_length_logits_1 = self.softmax(self.p1_Y_indel_length_logits_1(l5_3_dropout))
+        p1_y_indel_length_logits_2 = self.softmax(self.p1_Y_indel_length_logits_2(l5_4_dropout))
+
+        p2_y_gt21_logits = self.softmax(self.p2_Y_gt21_logits(l5_1_dropout))
+        p2_y_genotype_logits = self.softmax(self.p2_Y_genotype_logits(l5_2_dropout))
+        p2_y_indel_length_logits_1 = self.softmax(self.p2_Y_indel_length_logits_1(l5_3_dropout))
+        p2_y_indel_length_logits_2 = self.softmax(self.p2_Y_indel_length_logits_2(l5_4_dropout))
+
+        y_denovo_logits = self.softmax(self.Y_denovo_logits(l5_0_dropout))
+
+        if self.predict:
+            return tf.concat([c_y_gt21_logits, c_y_genotype_logits, c_y_indel_length_logits_1, c_y_indel_length_logits_2, \
+                              p1_y_gt21_logits, p1_y_genotype_logits, p1_y_indel_length_logits_1, p1_y_indel_length_logits_2, \
+                              p2_y_gt21_logits, p2_y_genotype_logits, p2_y_indel_length_logits_1, p2_y_indel_length_logits_2, \
+                              y_denovo_logits], axis=1)
+
+        if self.add_mcv_loss:
+            return [c_y_gt21_logits, c_y_genotype_logits, c_y_indel_length_logits_1, c_y_indel_length_logits_2, \
+                   p1_y_gt21_logits, p1_y_genotype_logits, p1_y_indel_length_logits_1, p1_y_indel_length_logits_2, \
+                   p2_y_gt21_logits, p2_y_genotype_logits, p2_y_indel_length_logits_1, p2_y_indel_length_logits_2, y_denovo_logits, \
+                    tf.concat([c_y_gt21_logits, p1_y_gt21_logits, p2_y_gt21_logits], axis=1)]
+        return [c_y_gt21_logits, c_y_genotype_logits, c_y_indel_length_logits_1, c_y_indel_length_logits_2, \
+              p1_y_gt21_logits, p1_y_genotype_logits, p1_y_indel_length_logits_1, p1_y_indel_length_logits_2, \
+              p2_y_gt21_logits, p2_y_genotype_logits, p2_y_indel_length_logits_1, p2_y_indel_length_logits_2, y_denovo_logits]
 
 class Clair3_Trio_V_o1(tf.keras.Model):
     # Residual CNN model for clair3 full alignment input

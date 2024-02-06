@@ -509,7 +509,7 @@ def train_model_NN(args):
 
 
     logging.info(args.__dict__)
-    # import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     
 
     training_start_time = time()
@@ -768,6 +768,274 @@ def train_model_NN(args):
         logging.info("[INFO] Best train loss at epoch: %d" % best_train_epoch)
     logging.info("Total time elapsed: %.2f s" % (time() - training_start_time))
 
+# input N, output N model
+def train_model_NN_denovo(args):
+    platform = args.platform
+
+    #legacy
+    pileup = args.pileup
+    tar_model_type = args.tar_model_type
+    add_indel_length = args.add_indel_length
+
+    exclude_training_samples = args.exclude_training_samples
+    exclude_training_samples = set(exclude_training_samples.split(',')) if exclude_training_samples else set()
+    add_validation_dataset = args.validation_dataset
+    ochk_prefix = args.ochk_prefix if args.ochk_prefix is not None else ""
+    
+
+    if abs(args.mcv_alpha) > 1e-10:
+        args.add_mcv_loss = True
+
+
+    logging.info(args.__dict__)
+    
+
+    training_start_time = time()
+    import trio.param_t as param
+
+    if args.model_cls == "Clair3_Trio_Out3_denovo":
+        model = model_path.Clair3_Trio_Out3_denovo(add_mcv_loss=args.add_mcv_loss)
+    else:
+        raise ValueError('Unsupported model_cls name: ',args.model_cls)
+    logging.info("Model class name: %s" % (args.model_cls))
+
+    # import pdb; pdb.set_trace()
+
+
+    _is_reverse_23 = args.add_reverse_23
+    tensor_shape = param.ont_input_shape_trio
+
+    if args.add_padding:
+        tensor_shape = param.p_ont_input_shape_trio
+    # import pdb; pdb.set_trace()
+
+    label_size, label_shape, label_shape_cum = param.label_size_trio_denovo, param.label_shape_trio_denovo, param.label_shape_cum_trio_denovo
+    #import pdb; pdb.set_trace()
+    
+    tensor_size_one = int(tensor_shape[0] / 3)
+    label_size_one = param.label_size
+
+
+    # 2000, 200
+    batch_size, chunk_size = param.trainBatchSize, param.chunk_size
+    if args.batch_size != 0:
+        batch_size = args.batch_size
+    random.seed(param.RANDOM_SEED)
+    np.random.seed(param.RANDOM_SEED)
+    learning_rate = args.learning_rate if args.learning_rate else param.initialLearningRate
+    max_epoch = args.maxEpoch if args.maxEpoch else param.maxEpoch
+    task_num = len(label_shape)
+    TensorShape = (tf.TensorShape([None] + tensor_shape),
+         tuple(tf.TensorShape([None, label_shape[task]]) for task in range(task_num)))
+    TensorDtype = (tf.int32, tuple(tf.float32 for _ in range(task_num)))
+
+    # trio loss
+    if args.add_mcv_loss:
+        TensorShape = (tf.TensorShape([None] + tensor_shape),
+             tuple([tf.TensorShape([None, label_shape[task]]) for task in range(task_num)] + [tf.TensorShape([None, param.label_shape[0] * 3])]))
+        TensorDtype = (tf.int32, tuple([tf.float32 for _ in range(task_num+1)]))
+
+    # import pdb; pdb.set_trace()
+
+
+    bin_list = os.listdir(args.bin_fn)
+
+    # default we exclude sample hg003 and all chr20 for training
+    bin_list = [f for f in bin_list if '_20_' not in f and not exist_file_prefix(exclude_training_samples, f)]
+
+    logging.info("[INFO] total {} training bin files: {}".format(len(bin_list), ','.join(bin_list)))
+    total_data_size = 0
+    table_dataset_list = []
+    validate_table_dataset_list = []
+    chunk_offset = np.zeros(len(bin_list), dtype=int)
+
+    effective_label_num = None
+    for bin_idx, bin_file in enumerate(bin_list):
+        table_dataset = tables.open_file(os.path.join(args.bin_fn, bin_file), 'r')
+        validate_table_dataset = tables.open_file(os.path.join(args.bin_fn, bin_file), 'r')
+        table_dataset_list.append(table_dataset)
+        validate_table_dataset_list.append(validate_table_dataset)
+        chunk_num = (len(table_dataset.root.label) - batch_size) // chunk_size
+        data_size = int(chunk_num * chunk_size)
+        chunk_offset[bin_idx] = chunk_num
+        total_data_size += data_size
+
+    train_data_size = total_data_size * param.trainingDatasetPercentage
+    validate_data_size = int((total_data_size - train_data_size) // chunk_size) * chunk_size
+    train_data_size = int(train_data_size // chunk_size) * chunk_size
+    train_shuffle_chunk_list, validate_shuffle_chunk_list = get_chunk_list(chunk_offset, train_data_size, chunk_size)
+    # import pdb; pdb.set_trace()
+
+    def DataGenerator(x, data_size, shuffle_chunk_list, train_flag=True):
+
+        """
+        data generator for pileup or full alignment data processing, pytables with blosc:lz4hc are used for extreme fast
+        compression and decompression. random chunk shuffling and random start position to increase training model robustness.
+
+        """
+
+        chunk_iters = batch_size // chunk_size
+        batch_num = data_size // batch_size
+        position_matrix = np.empty([batch_size] + tensor_shape, np.int32)
+        label = np.empty((batch_size, label_size), np.float32)
+
+        random_start_position = np.random.randint(0, batch_size) if train_flag else 0
+        if train_flag:
+            np.random.shuffle(shuffle_chunk_list)
+
+        _tar_lebel_id = 0 if tar_model_type == 'child' else 1
+        # import pdb; pdb.set_trace()
+
+        _idx = 0
+        for batch_idx in range(batch_num):
+            for chunk_idx in range(chunk_iters):
+                offset_chunk_id = shuffle_chunk_list[batch_idx * chunk_iters + chunk_idx]
+                bin_id, chunk_id = offset_chunk_id
+                position_matrix[chunk_idx * chunk_size:(chunk_idx + 1) * chunk_size] = x[bin_id].root.position_matrix[
+                        random_start_position + chunk_id * chunk_size:random_start_position + (chunk_id + 1) * chunk_size]
+                label[chunk_idx * chunk_size:(chunk_idx + 1) * chunk_size] = x[bin_id].root.label[
+                        random_start_position + chunk_id * chunk_size:random_start_position + (chunk_id + 1) * chunk_size]
+
+            _t_cum = [0] + label_shape_cum
+            if args.add_mcv_loss:
+                trio_pred_tar = [label[:, _t_cum[_i]: _t_cum[_i+1]] for _i in range(len(label_shape_cum)) if _i % 4 == 0]
+                trio_pred_tar = np.concatenate(trio_pred_tar, axis=1)
+                yield position_matrix, tuple([label[:, _t_cum[_i]: _t_cum[_i+1]] for _i in range(len(label_shape_cum))] + [trio_pred_tar])
+            else:
+                yield position_matrix, tuple([label[:, _t_cum[_i]: _t_cum[_i+1]] for _i in range(len(label_shape_cum))]) 
+
+
+
+        # two rounds for generating reversed data
+        # _is_reverse_23 = False
+        if _is_reverse_23:
+            for batch_idx in range(batch_num):
+                for chunk_idx in range(chunk_iters):
+                    offset_chunk_id = shuffle_chunk_list[batch_idx * chunk_iters + chunk_idx]
+                    bin_id, chunk_id = offset_chunk_id
+                    position_matrix[chunk_idx * chunk_size:(chunk_idx + 1) * chunk_size] = x[bin_id].root.position_matrix[
+                            random_start_position + chunk_id * chunk_size:random_start_position + (chunk_id + 1) * chunk_size]
+                    label[chunk_idx * chunk_size:(chunk_idx + 1) * chunk_size] = x[bin_id].root.label[
+                            random_start_position + chunk_id * chunk_size:random_start_position + (chunk_id + 1) * chunk_size]
+                    # for _ii, _t in enumerate(range(random_start_position + chunk_id * chunk_size, random_start_position + (chunk_id + 1) * chunk_size)):
+                    #     print(_ii, _t)
+                    #     print(x[bin_id].root.position[_t], x[bin_id].root.alt_info[_t], x[bin_id].root.label[_t])
+                    #     for _i in range(3):
+                    #         print(', '.join([str(i) for i in x[bin_id].root.label[_t].reshape(3, -1)[_i, :]]))
+
+                if _is_reverse_23:
+                    position_matrix = np.concatenate((
+                    position_matrix[:, tensor_size_one * 0 : tensor_size_one * 1,:,:], \
+                    position_matrix[:, tensor_size_one * 2 : tensor_size_one * 3:,:], \
+                    position_matrix[:, tensor_size_one * 1 : tensor_size_one * 2,:,:]), axis=1)
+
+                    label = np.concatenate((
+                    label[:, label_size_one * 0 : label_size_one * 1], \
+                    label[:, label_size_one * 2 : label_size_one * 3], \
+                    label[:, label_size_one * 1 : label_size_one * 2]), axis=1)
+
+
+                # _t_cum = [0] + label_shape_cum
+                # yield position_matrix, tuple([label[:, _t_cum[_i]: _t_cum[_i+1]] for _i in range(len(label_shape_cum))]) 
+
+                _t_cum = [0] + label_shape_cum
+                if args.add_mcv_loss:
+                    trio_pred_tar = [label[:, _t_cum[_i]: _t_cum[_i+1]] for _i in range(len(label_shape_cum)) if _i % 4 == 0]
+                    trio_pred_tar = np.concatenate(trio_pred_tar, axis=1)
+                    yield position_matrix, tuple([label[:, _t_cum[_i]: _t_cum[_i+1]] for _i in range(len(label_shape_cum))] + [trio_pred_tar])
+                else:
+                    yield position_matrix, tuple([label[:, _t_cum[_i]: _t_cum[_i+1]] for _i in range(len(label_shape_cum))]) 
+
+
+    train_dataset = tf.data.Dataset.from_generator(
+        lambda: DataGenerator(table_dataset_list, train_data_size, train_shuffle_chunk_list, True), TensorDtype,
+        TensorShape).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+    validate_dataset = tf.data.Dataset.from_generator(
+        lambda: DataGenerator(validate_table_dataset_list, validate_data_size, validate_shuffle_chunk_list, False), TensorDtype,
+        TensorShape).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+
+    total_steps = max_epoch * train_data_size // batch_size
+
+    # for example in train_dataset:
+    #     print(example)
+    # import pdb; pdb.set_trace()
+
+    # RectifiedAdam with warmup start
+    optimizer = tfa.optimizers.Lookahead(tfa.optimizers.RectifiedAdam(
+            lr=learning_rate,
+            total_steps=total_steps,
+            warmup_proportion=0.1,
+            min_lr=learning_rate*0.75,
+        ))
+    logging.info("finetune optimizer with RectifiedAdam")
+    
+
+    loss_func = [FocalLoss(label_shape_cum, task, effective_label_num) for task in range(task_num)]
+    loss_task = {"output_{}".format(task + 1): loss_func[task] for task in range(task_num)}
+    metrics = {"output_{}".format(task + 1): tfa.metrics.F1Score(num_classes=label_shape[task], average='micro') for
+               task in range(task_num)}
+
+    if args.add_mcv_loss:
+        if args.mcv_alpha == 0:
+            args.mcv_alpha = 1
+        loss_task["output_{}".format(task_num + 1)] = MCVLoss(alpha=args.mcv_alpha)
+
+    model.compile(
+        loss=loss_task,
+        metrics=metrics,
+        optimizer=optimizer,
+        # run_eagerly=True
+    )
+
+
+    early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, mode="min")
+    model_save_callback = tf.keras.callbacks.ModelCheckpoint(ochk_prefix + ".{epoch:02d}", period=1, save_weights_only=False)
+    model_best_callback = tf.keras.callbacks.ModelCheckpoint("best_val_loss", monitor='val_loss', save_best_only=True, mode="min")
+    train_log_callback = tf.keras.callbacks.CSVLogger("training.log", separator='\t')
+
+    # Use first 20 element to initialize tensorflow model using graph mode
+    # output = model(np.array(table_dataset_list[0].root.position_matrix[:20]))
+
+    model.build(tf.TensorShape([None] + tensor_shape))
+    logging.info(model.summary(print_fn=logging.info))
+
+    logging.info("[INFO] The size of dataset: {}".format(total_data_size))
+    logging.info("[INFO] The training batch size: {}".format(batch_size))
+    logging.info("[INFO] The training learning_rate: {}".format(learning_rate))
+    logging.info("[INFO] Total training steps: {}".format(total_steps))
+    logging.info("[INFO] Maximum training epoch: {}".format(max_epoch))
+    logging.info("[INFO] MCVLoss alpha: {}".format(args.mcv_alpha))
+    logging.info("[INFO] Start training...")
+
+    validate_dataset = validate_dataset if add_validation_dataset else None
+    # import pdb; pdb.set_trace()
+    if args.chkpnt_fn is not None:
+        model.load_weights(args.chkpnt_fn)
+        logging.info("[INFO] Starting from model {}".format(args.chkpnt_fn))
+
+
+    # # import pdb; pdb.set_trace()
+    train_history = model.fit(x=train_dataset,
+                              epochs=max_epoch,
+                              validation_data=validate_dataset,
+                              callbacks=[early_stop_callback, model_save_callback, model_best_callback, train_log_callback],
+                              verbose=1,
+                              shuffle=False)
+
+    for table_dataset in table_dataset_list:
+        table_dataset.close()
+
+    for table_dataset in validate_table_dataset_list:
+        table_dataset.close()
+
+    # show the parameter set with the smallest validation loss
+    if 'val_loss' in train_history.history:
+        best_validation_epoch = np.argmin(np.array(train_history.history["val_loss"])) + 1
+        logging.info("[INFO] Best validation loss at epoch: %d" % best_validation_epoch)
+    else:
+        best_train_epoch = np.argmin(np.array(train_history.history["loss"])) + 1
+        logging.info("[INFO] Best train loss at epoch: %d" % best_train_epoch)
+    logging.info("Total time elapsed: %.2f s" % (time() - training_start_time))
 
 def main():
     parser = ArgumentParser(description="Train a Clair3 model")
@@ -833,6 +1101,8 @@ def main():
     parser.add_argument('--is_debuging', type=str2bool, default=False,
                         help=SUPPRESS)
 
+    parser.add_argument('--train_denovo', type=str2bool, default=False,
+                        help=SUPPRESS)
 
 
     args = parser.parse_args()
@@ -841,12 +1111,13 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    if args.model_arc == 'N1':
-        train_model_N1(args)
+    if args.train_denovo:
+        train_model_NN_denovo(args)
     else:
-        train_model_NN(args)
-
-
+        if args.model_arc == 'N1':
+            train_model_N1(args)
+        else:
+            train_model_NN(args)
 
 if __name__ == "__main__":
     main()

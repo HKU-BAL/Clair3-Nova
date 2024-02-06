@@ -11,7 +11,7 @@ def Run(args):
     utils.setup_environment()
     logging.info("Loading the dataset ...")
 
-    utils.get_training_array(
+    utils.get_training_array_denovo(
             tensor_fn=args.tensor_fn,
             var_fn_c=args.var_fn_c,
             var_fn_p1=args.var_fn_p1,
@@ -26,6 +26,7 @@ def Run(args):
             add_padding=args.add_padding,
             platform=args.platform,
             check_mcv=args.check_mcv,
+            only_denovo=args.only_denovo,
             maximum_non_variant_ratio=args.maximum_non_variant_ratio,
             candidate_details_fn_prefix=args.candidate_details_fn_prefix)
     logging.info("Finish!")
@@ -87,6 +88,9 @@ def main():
                         help=SUPPRESS)
 
     parser.add_argument('--check_mcv', type=str2bool, default=False,
+                        help=SUPPRESS)
+
+    parser.add_argument('--only_denovo', type=str2bool, default=False,
                         help=SUPPRESS)
 
     args = parser.parse_args()

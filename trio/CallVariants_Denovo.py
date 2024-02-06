@@ -243,6 +243,7 @@ def Run_call_trio(args):
         tensor_fn=args.tensor_fn,
         input_probabilities=args.input_probabilities,
         add_indel_length=args.add_indel_length,
+        is_denovo=args.is_denovo,
         gvcf=args.gvcf,
         pileup=args.pileup,
         trio_n_id=0,
@@ -270,6 +271,7 @@ def Run_call_trio(args):
         tensor_fn=args.tensor_fn,
         input_probabilities=args.input_probabilities,
         add_indel_length=args.add_indel_length,
+        is_denovo=args.is_denovo,
         gvcf=args.gvcf,
         pileup=args.pileup,
         trio_n_id=1,
@@ -296,6 +298,7 @@ def Run_call_trio(args):
         tensor_fn=args.tensor_fn,
         input_probabilities=args.input_probabilities,
         add_indel_length=args.add_indel_length,
+        is_denovo=args.is_denovo,
         gvcf=args.gvcf,
         pileup=args.pileup,
         trio_n_id=2,
@@ -1539,6 +1542,7 @@ def call_variants(args, output_config_c, output_utilities_c, \
                         output_config_p2, output_utilities_p2):
     logging.info("[INFO] Make prediction ...")
 
+    is_denovo = args.is_denovo
     use_gpu = args.use_gpu
     if use_gpu:
         logging.info("[INFO] use gpu")
@@ -1548,11 +1552,13 @@ def call_variants(args, output_config_c, output_utilities_c, \
     else:
         os.environ["CUDA_VISIBLE_DEVICES"] = ""
     global param
-    #import trio.param_t as param
+    import trio.param_t as param
 
-    m = model_path.Clair3_Trio_Out3(add_indel_length=args.add_indel_length, predict=True)
+    m = model_path.Clair3_Trio_Out3_denovo(add_indel_length=args.add_indel_length, predict=True)
     # logging.info("Model class name: %s" % (args.model_cls))
     label_size = param.label_size_trio
+    if is_denovo:
+        label_size = param.label_size_trio_denovo
 
     m.load_weights(args.chkpnt_fn)
 
@@ -1941,7 +1947,7 @@ def main():
     parser.add_argument('--debug', action='store_true',
                         help=SUPPRESS)
 
-    parser.add_argument('--model_cls', type=str, default="Clair3_Trio_Out3",
+    parser.add_argument('--model_cls', type=str, default="Clair3_Trio_Out3_denovo",
                         help="model class name, %(default)s")
 
     ## Generating outputs for ensemble model calling
@@ -1982,7 +1988,7 @@ def main():
     parser.add_argument('--call_fn_p2', type=str, default="clair3_p2.vcf",
                         help="VCF output filename, or stdout if not set")
 
-    parser.add_argument('--is_denovo', type=str2bool, default=False,
+    parser.add_argument('--is_denovo', type=str2bool, default=True,
                         help="is using the denovo model")
 
     args = parser.parse_args()

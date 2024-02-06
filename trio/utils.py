@@ -319,7 +319,7 @@ def update_table_dict():
     return table_dict
 
 
-def write_table_file(table_file, table_dict, tensor_shape, label_size, float_type):
+def write_table_file(table_file, table_dict, tensor_shape, label_size, float_type, use_denovo_label=False):
     """
     Write pileup or full alignment tensor into compressed bin file.
     table_dict: dictionary include all training information (tensor position, label, altnative bases).
@@ -336,10 +336,17 @@ def write_table_file(table_file, table_dict, tensor_shape, label_size, float_typ
 
     table_file.root.alt_info.append(np.array(table_dict['alt_info']).reshape(-1, 1))
     table_file.root.position.append(np.array(table_dict['position']).reshape(-1, 1))
-    table_file.root.label.append(np.array(table_dict['label'], np.dtype(float_type)).reshape(-1, label_size))
+    if not use_denovo_label:
+        table_file.root.label.append(np.array(table_dict['label'], np.dtype(float_type)).reshape(-1, label_size))
+    else:
+        #import pdb; pdb.set_trace() 
+        ori_label = np.array(table_dict['label'], np.dtype(float_type)).reshape(-1, label_size-2)
+        ori_label_shape = ori_label.shape
+        denovo_label_1 = np.full((ori_label_shape[0], 1), use_denovo_label[0], np.dtype(float_type))
+        denovo_label_2 = np.full((ori_label_shape[0], 1), use_denovo_label[1], np.dtype(float_type))
+        table_file.root.label.append(np.concatenate((ori_label, denovo_label_1, denovo_label_2), axis=1))
     
     # print(len(table_dict['alt_info']), tensor_shape, label_size)
-    # import pdb; pdb.set_trace() 
     table_dict = update_table_dict()
     return table_dict
 
@@ -783,6 +790,338 @@ def get_training_array(tensor_fn, var_fn_c, var_fn_p1, var_fn_p2, bed_fn, bin_fn
 
     if (total_compressed % output_bin_size != 0) and total_compressed > 0:
         table_dict = write_table_file(table_file, table_dict, tensor_shape_trio, label_size_trio, float_type)
+
+    table_file.close()
+    print("[INFO] Compressed %d/%d tensor" % (total_compressed, total), file=sys.stderr)
+    print("[INFO] total sites %d, mcv %d, pass %d" % (cnt_all, cnt_mvc, cnt_pass), file=sys.stderr)
+
+
+def get_training_array_denovo(tensor_fn, var_fn_c, var_fn_p1, var_fn_p2, bed_fn, bin_fn, shuffle=True, is_allow_duplicate_chr_pos=True, chunk_id=None,
+                       chunk_num=None, platform='ont', pileup=False, add_padding=False, check_mcv=False, only_denovo=True,
+                       maximum_non_variant_ratio=None, candidate_details_fn_prefix=None):
+
+    """
+    Generate training array for training. here pytables with blosc:lz4hc are used for extreme fast compression and decompression,
+    which can meet the requirement of gpu utilization. lz4hc decompression allows speed up training array decompression 4~5x compared
+    with tensorflow tfrecord file format, current gpu utilization could reach over 85% with only 10G memory.
+    tensor_fn: string format tensor acquired from CreateTensorPileup or CreateTensorFullAlign, include contig name position, tensor matrix, alternative information.
+    var_fn (_c, _p1, _p2): simplified variant(vcf) format from GetTruths, which include contig name, position, reference base, alternative base, genotype.
+    bin_fn: pytables format output bin file name.
+    shuffle: whether apply index shuffling when generating training data, default True, which would promote robustness.
+    is_allow_duplicate_chr_pos: whether allow duplicate positions when training, if there exists downsampled data, lower depth will add a random prefix character.
+    chunk_id: specific chunk id works with total chunk_num for parallel execution. Here will merge all tensor file with sampe prefix.
+    chunk_num: total chunk number for parallel execution. Each chunk refer to a smaller reference regions.
+    platform: platform for tensor shape, ont give a larger maximum depth compared with pb and illumina.
+    pileup: whether in pileup mode. Define two calling mode, pileup or full alignment.
+    maximum_non_variant_ratio: define a maximum non variant ratio for training, we always expect use more non variant data, while it would greatly increase training
+    time, especially in ont data, here we usually use 1:1 or 1:2 for variant candidate: non variant candidate.
+    candidate_details_fn_prefix: a counter to calculate total variant and non variant from the information in alternative file.
+    """
+    all_denovo_task = True
+    # 0, 1 for denovo
+    # 1, 0 for no denovo
+    use_denovo_label = [1, 0]
+    if only_denovo:
+        use_denovo_label = [0, 1]
+        check_mcv = True
+
+    print("using denovo label %s" % (use_denovo_label))
+
+    # legacy
+    var_fn = var_fn_c
+
+    # read bed file
+    tree = bed_tree_from(bed_file_path=bed_fn)
+    is_tree_empty = len(tree.keys()) == 0
+
+    # read true Y info
+    Y_true_var_c, miss_variant_set_c, truth_alt_dict_c = variant_map_from(var_fn_c, tree, is_tree_empty, 'c' if check_mcv else 0)
+    Y_true_var_p1, miss_variant_set_p1, truth_alt_dict_p1 = variant_map_from(var_fn_p1, tree, is_tree_empty, 'p1' if check_mcv else 0)
+    Y_true_var_p2, miss_variant_set_p2, truth_alt_dict_p2 = variant_map_from(var_fn_p2, tree, is_tree_empty, 'p2' if check_mcv else 0)
+    Y_c = copy.deepcopy(Y_true_var_c)
+    Y_p1 = copy.deepcopy(Y_true_var_p1)
+    Y_p2 = copy.deepcopy(Y_true_var_p2)
+    # import pdb; pdb.set_trace()
+
+    print('read true ', len(Y_c), len(Y_p1), len(Y_p2))
+    # print('read true ', len(miss_variant_set_c), len(miss_variant_set_p1), len(miss_variant_set_p2))
+
+    # legacy
+    # Y, miss_variant_set = variant_map_from(var_fn, tree, is_tree_empty)
+
+    global param
+    import trio.param_t as param
+
+    float_type = 'int8' #iinfo(min=-128, max=127, dtype=int8)
+    tensor_shape = param.ont_input_shape_trio 
+
+    # legacy
+    tensor_shape_one = param.ont_input_shape 
+    tensor_shape_trio = param.ont_input_shape_trio 
+
+    if add_padding:
+        # change trio shape when using add padding channel
+        print("[INFO] add padding tensors %s, %s, %s" % \
+            (param.padding_value_c, param.padding_value_p1, param.padding_value_p2), file=sys.stderr)
+        tensor_shape_trio = param.p_ont_input_shape_trio 
+
+    label_size_one = param.label_size
+    label_size_trio = param.label_size_trio
+    if all_denovo_task:
+        label_size_trio = param.label_size_trio_denovo
+
+    if maximum_non_variant_ratio != None:
+        print("[INFO] non variants/ variants subsample ratio set to: {}".format(maximum_non_variant_ratio))
+
+    # get all tensors files name and split into different chunck set
+    # select all match prefix if file path not exists
+    subprocess_list = []
+    if os.path.exists(tensor_fn):
+        subprocess_list.append(subprocess_popen(shlex.split("{} -fdc {}".format(param.zstd, tensor_fn))))
+    else:
+        tensor_fn = tensor_fn.split('/')
+        directry, file_prefix = '/'.join(tensor_fn[:-1]), tensor_fn[-1]
+        all_file_name = []
+        for file_name in os.listdir(directry):
+            if file_name.startswith(file_prefix + '_') or file_name.startswith(
+                    file_prefix + '.'):  # add '_.' to avoid add other prefix chr
+                all_file_name.append(file_name)
+        all_file_name = sorted(all_file_name)
+        if chunk_id is not None:
+            chunk_size = len(all_file_name) // chunk_num if len(all_file_name) % chunk_num == 0 else len(
+                all_file_name) // chunk_num + 1
+            chunk_start = chunk_size * chunk_id
+            chunk_end = chunk_start + chunk_size
+            all_file_name = all_file_name[chunk_start:chunk_end]
+        if not len(all_file_name):
+            print("[INFO] chunk_id exceed total file number, skip chunk", file=sys.stderr)
+            return 0
+        for file_name in all_file_name:
+            subprocess_list.append(subprocess_popen(shlex.split("{} -fdc {}".format(param.zstd, os.path.join(directry, file_name)))))
+
+    #import pdb; pdb.set_trace()
+
+    tables.set_blosc_max_threads(64)
+    int_atom = tables.Atom.from_dtype(np.dtype(float_type))
+    string_atom = tables.StringAtom(itemsize=param.no_of_positions + 50)
+    long_string_atom = tables.StringAtom(itemsize=param.max_alt_info_length)  # max alt_info length
+    table_file = tables.open_file(bin_fn, mode='w', filters=FILTERS)
+    table_file.create_earray(where='/', name='position_matrix', atom=int_atom, shape=[0] + tensor_shape_trio,
+                             filters=FILTERS)
+    table_file.create_earray(where='/', name='position', atom=string_atom, shape=(0, 1), filters=FILTERS)
+    table_file.create_earray(where='/', name='label', atom=int_atom, shape=(0, label_size_trio), filters=FILTERS)
+    table_file.create_earray(where='/', name='alt_info', atom=long_string_atom, shape=(0, 1), filters=FILTERS)
+
+    table_dict = update_table_dict()
+    # import pdb; pdb.set_trace()
+
+    # generator to avoid high memory occupy
+    bin_reader_generator = bin_reader_generator_from(subprocess_list=subprocess_list,
+                                                     Y_true_var_c=Y_true_var_c,
+                                                     Y_true_var_p1=Y_true_var_p1,
+                                                     Y_true_var_p2=Y_true_var_p2,
+                                                     Y_c=Y_c,
+                                                     Y_p1=Y_p1,
+                                                     Y_p2=Y_p2,
+                                                     is_tree_empty=is_tree_empty,
+                                                     tree=tree,
+                                                     miss_variant_set_c=miss_variant_set_c,
+                                                     miss_variant_set_p1=miss_variant_set_p1,
+                                                     miss_variant_set_p2=miss_variant_set_p2,
+                                                     truth_alt_dict_c=truth_alt_dict_c,
+                                                     truth_alt_dict_p1=truth_alt_dict_p1,
+                                                     truth_alt_dict_p2=truth_alt_dict_p2,
+                                                     is_allow_duplicate_chr_pos=is_allow_duplicate_chr_pos,
+                                                     maximum_non_variant_ratio=maximum_non_variant_ratio)
+
+    def get_label(key, Y, is_allow_duplicate_chr_pos):
+        label, new_key = None, ''
+        if key in Y:
+            label = Y[key]
+            new_key = key
+            if not is_allow_duplicate_chr_pos:
+                del Y[key]
+        elif is_allow_duplicate_chr_pos:
+            tmp_key = key[1:]
+            label = Y[tmp_key]
+            new_key = tmp_key
+            pos = tmp_key + ':' + seq
+        return label, new_key
+
+    cnt_mvc, cnt_all, cnt_pass = 0, 0, 0
+    total_compressed = 0
+    lst_p = 0
+    _chr = ""
+    all_p_m = {}
+
+    while True:
+        X, total = next(bin_reader_generator)
+
+        if X is None or not len(X):
+            break
+        all_chr_pos = sorted(X.keys())
+
+        if only_denovo:
+            #only allow a single chr at each time
+            all_p = sorted(set([int(_p.split(":")[1]) for _p in all_chr_pos]))
+            all_p = [[_p, 0] for _p in all_p]
+            # check_all_p
+            _olp_dis = 50
+            _lst_p_i = 0
+            for _p_i in range(1, len(all_p)):
+                while _lst_p_i < _p_i and ((all_p[_p_i][0] - all_p[_lst_p_i][0]) > _olp_dis):
+                    _lst_p_i += 1
+                _flag_m = 0
+                _tmp_i = _lst_p_i
+                while _tmp_i < _p_i and ((all_p[_p_i][0] - all_p[_tmp_i][0]) <= _olp_dis):
+                    all_p[_tmp_i][1] += 1
+                    _tmp_i += 1
+                    _flag_m = 1
+                if _flag_m == 1:
+                    all_p[_p_i][1] += 1
+                    #print(all_p[_lst_p_i], all_p[_p_i])
+
+            all_p_m = {_p[0]:_p[1] for _p in all_p}
+
+        #import pdb; pdb.set_trace()
+
+        if shuffle == True:
+            np.random.shuffle(all_chr_pos)
+        for key in all_chr_pos:
+            string_c, alt_info_c, string_p1, alt_info_p1, string_p2, alt_info_p2, seq = X[key]
+
+            #legacy
+            string, alt_info = string_c, alt_info_c
+
+            del X[key]
+
+            # get label
+            label_c, _key = get_label(key, Y_c, is_allow_duplicate_chr_pos)
+            label_p1, _ = get_label(key, Y_p1, is_allow_duplicate_chr_pos)
+            label_p2, _ = get_label(key, Y_p2, is_allow_duplicate_chr_pos)
+
+            pos = _key + ':' + seq
+
+            # legacy
+            label = label_c
+
+            if (label_c is None) or (label_p1 is None) or (label_p2 is None):
+                print('warning, key empty', key)
+                continue
+            cnt_all += 1
+
+            # check mcv
+
+            def get_info_from_label(label):
+                idx = np.argmax(label[:21])
+                gt_21 = GT21_LABELS[idx]
+                indel_1 = np.argmax(label[24:57]) - variant_length_index_offset # 21 + 3 : 21 + 3 + 33
+                indel_2 = np.argmax(label[57:]) - variant_length_index_offset # 21 + 3 + 33 :
+                return gt_21, indel_1, indel_2
+
+            def get_ind_gt(_ref, _alt):
+                if len(_ref) == len(_alt):
+                    return _alt[0]
+                if len(_ref) > len(_alt):
+                    return 'D-' + _ref[1: 1 + len(_ref) - len(_alt)]
+                if len(_ref) < len(_alt):
+                    return 'I-' + _alt[1: 1 + len(_alt) - len(_ref)]
+
+            def get_sep_gt(gt_21, indel_1, indel_2, _key, _t, ALL_Y_INFO):
+                ar1, ar2 = '', ''
+                if len(gt_21) == 2:
+                    ar1, ar2 = gt_21[0], gt_21[1]
+                    return ar1, ar2
+                if _key in ALL_Y_INFO and _t in ALL_Y_INFO[_key]:
+                    _ref_s, _alt_s, _gt1, _gt2 = \
+                    ALL_Y_INFO[_key][_t][2], ALL_Y_INFO[_key][_t][3].split(','), int(ALL_Y_INFO[_key][_t][4]), int(ALL_Y_INFO[_key][_t][5])
+                    _alt_s = [_ref_s] + _alt_s
+                    ar1 = get_ind_gt(_ref_s, _alt_s[_gt1])
+                    ar2 = get_ind_gt(_ref_s, _alt_s[_gt2])
+                    return ar1, ar2
+                # if is indel but no alter infor
+                print('err', gt_21, indel_1, indel_2, _key)
+
+
+            if check_mcv:
+                c_gt_21, c_indel_1, c_indel_2 = get_info_from_label(label_c)
+                p1_gt_21, p1_indel_1, p1_indel_2 = get_info_from_label(label_p1)
+                p2_gt_21, p2_indel_1, p2_indel_2 = get_info_from_label(label_p2)
+
+                c_ar1, c_ar2 = get_sep_gt(c_gt_21, c_indel_1, c_indel_2, _key, 'c', ALL_Y_INFO)
+                p1_ar1, p1_ar2 = get_sep_gt(p1_gt_21, p1_indel_1, p1_indel_2, _key, 'p1', ALL_Y_INFO)
+                p2_ar1, p2_ar2 = get_sep_gt(p2_gt_21, p2_indel_1, p2_indel_2, _key, 'p2', ALL_Y_INFO)
+
+                _MC = 0
+                for _ar1 in [p1_ar1, p1_ar2]:
+                    for _ar2 in [p2_ar1, p2_ar2]:
+                        if ((c_ar1 == _ar1) and (c_ar2 == _ar2)) or ((c_ar2 == _ar1) and (c_ar1 == _ar2)):
+                            _MC = 1
+                            break
+                    if _MC == 1:
+                        break
+
+                if not only_denovo:
+                    if _key in ALL_Y_INFO and _MC==0:
+                        print(_key)
+                        print(ALL_Y_INFO[_key])
+                        print(c_gt_21, c_indel_1, c_indel_2, c_ar1, c_ar2)
+                        print(p1_gt_21, p1_indel_1, p1_indel_2, p1_ar1, p1_ar2)
+                        print(p2_gt_21, p2_indel_1, p2_indel_2, p2_ar1, p2_ar2)
+                        print(_MC)
+                        cnt_mvc += 1
+                        # import pdb; pdb.set_trace()
+                        continue
+                else:
+                    if (_key not in ALL_Y_INFO):
+                        continue
+
+                    _DV = 0
+                    if ('p1' not in ALL_Y_INFO[_key]) and ('p2' not in ALL_Y_INFO[_key]) and \
+                        p1_ar1 == p1_ar2 and p2_ar1 == p2_ar2 and p1_ar1 == p2_ar1:
+                        if c_ar1 != c_ar2 and (c_ar1 == p1_ar1 or c_ar2 == p1_ar1):
+                            _DV = 1
+
+                    if _DV == 0:
+                        continue
+
+                    #print(_key)
+                    _pos = int(_key.split(":")[1])
+                    _hit_t = 0 if _pos not in all_p_m else all_p_m[_pos]
+
+                    ## filter olp denovo
+                    #if _hit_t > 0:
+                    #    continue
+                    print(_pos, _hit_t, ALL_Y_INFO[_key])
+                    print(c_gt_21, c_indel_1, c_indel_2, c_ar1, c_ar2)
+                    print(p1_gt_21, p1_indel_1, p1_indel_2, p1_ar1, p1_ar2)
+                    print(p2_gt_21, p2_indel_1, p2_indel_2, p2_ar1, p2_ar2)
+                    #import pdb; pdb.set_trace()
+                    #print(_DV)
+                    cnt_mvc += 1
+
+
+            # continue
+            cnt_pass += 1
+
+            total_compressed = write_table_dict(table_dict, pos, \
+                string_c, alt_info_c, label_c, \
+                string_p1, alt_info_p1, label_p1, \
+                string_p2, alt_info_p2, label_p2, \
+                total_compressed, tensor_shape_one, add_padding)
+
+            # import pdb; pdb.set_trace()
+            # write to table on every output_bin_size records parsed
+            if (total_compressed % output_bin_size == 0) and total_compressed > 0:
+                # print(total_compressed)
+                #import pdb; pdb.set_trace()
+                table_dict = write_table_file(table_file, table_dict, tensor_shape_trio, label_size_trio, float_type, use_denovo_label=use_denovo_label)
+
+            if total_compressed % 50000 == 0:
+                print("[INFO] Compressed %d tensor" % (total_compressed), file=sys.stderr)
+
+    if (total_compressed % output_bin_size != 0) and total_compressed > 0:
+        table_dict = write_table_file(table_file, table_dict, tensor_shape_trio, label_size_trio, float_type, use_denovo_label=use_denovo_label)
 
     table_file.close()
     print("[INFO] Compressed %d/%d tensor" % (total_compressed, total), file=sys.stderr)

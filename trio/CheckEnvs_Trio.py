@@ -169,7 +169,7 @@ def output_header(output_fn, reference_file_path, sample_name=None, cmdline=None
     from textwrap import dedent
     output_file.write(dedent("""\
         ##fileformat=VCFv4.2
-        ##source=Clair3-Trio
+        ##source=Clair3-Denovo
         ##{0}_version={1}
         ##cmdline={2}
         ##FILTER=<ID=PASS,Description="All filters passed">
@@ -178,6 +178,7 @@ def output_header(output_fn, reference_file_path, sample_name=None, cmdline=None
         ##INFO=<ID=P,Number=0,Type=Flag,Description="Result from pileup calling">
         ##INFO=<ID=F,Number=0,Type=Flag,Description="Result from full-alignment calling">
         ##INFO=<ID=T,Number=0,Type=Flag,Description="Result from trio calling">
+        ##INFO=<ID=DNP,Number=.,Type=Float,Description="de novo variant probability">
         ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
         ##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
         ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth (reads with MQ<20 or selected by 'samtools view -F 2316' are filtered)">

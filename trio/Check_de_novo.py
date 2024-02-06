@@ -18,6 +18,7 @@ from shared.utils import str2bool
 def Check(args):
     call_vcf = args.call_vcf
     true_vcf = args.true_vcf
+    order= args.order
     contig_name = args.ctgName
     bed_fn = args.bed_fn
     tree = bed_tree_from(bed_fn, contig_name=contig_name)
@@ -25,6 +26,7 @@ def Check(args):
 
     print(' *** checking the de novo variants sites, required merged VCF, and trio in order of child, parent1, parent2 at last 3 columns')
     c_col, p1_col, p2_col = 9, 10, 11
+    c_col, p1_col, p2_col = 9+int(order[0]), 9+int(order[1]), 9+int(order[2])
 
     call_de_novo_s = set()
     if call_vcf and os.path.exists(call_vcf):
@@ -66,6 +68,7 @@ def Check(args):
         f.stdout.close()
         f.wait()
 
+    c_col, p1_col, p2_col = 9, 10, 11
 
     true_de_novo_s = set()
     true_s_sites = dict()
@@ -141,6 +144,9 @@ def main():
 
     parser.add_argument('--bed_fn', type=str, default=None,
         help="constrain select region within bed file, (default: %(default)s)")
+
+    parser.add_argument('--order', type=str, default=None,
+        help="012")
 
 
     args = parser.parse_args()
