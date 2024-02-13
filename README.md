@@ -243,7 +243,7 @@ cd Clair3-Denovo
 # might require docker authentication to build docker image 
 docker build -f ./Dockerfile -t hkubal/clair3-denovo:latest .
 
-# run clair3-trio docker image like 
+# run clair3-docker image like 
 docker run -it hkubal/clair3-denovo:latest /opt/bin/run_clair3_denovo.sh --help
 ```
 
@@ -270,3 +270,51 @@ Clair3-Denovo outputs files in VCF/GVCF format for the trio & de novo genotype. 
     └── /tmp				# folder for all running temporary files 
 
 
+
+## how to get high quality de novo variants from output
+
+TBC
+
+```bash
+
+# for clair3-denovo output of ${SAMPLE[0]}.vcf.gz, ${SAMPLE[1]}.vcf.gz, ${SAMPLE[2]}.vcf.gz 
+
+
+BCFTOOLS=bcftools
+RTG=rtg
+_TRIO_PED=/autofs/bal31/jhsu/home/data/giab/trio.ped  
+cat $_TRIO_PED
+    #PED format pedigree
+    #
+    #fam-id/ind-id/pat-id/mat-id: 0=unknown
+    #sex: 1=male; 2=female; 0=unknown
+    #phenotype: -9=missing, 0=missing; 1=unaffected; 2=affected
+    #
+    #fam-id ind-id pat-id mat-id sex phen
+    1 HG002 HG003 HG004 1 0
+    1 HG003 0 0 1 0
+    1 HG004 0 0 2 0
+REF_SDF_FILE_PATH=/autofs/bal36/jhsu/r10/input/GCA_000001405.15_GRCh38_no_alt_analysis_set.sdf
+M_VCF=trio_m.vcf.gz
+M_VCF_annotated=trio_m_ann.vcf.gz
+denovo_VCF=trio_all_denovo.vcf.gz
+denovo_VCF_sf=trio_high_quality_denovo.vcf.gz
+
+  
+${BCFTOOLS} merge ${SAMPLE[0]}.vcf.gz \
+${SAMPLE[1]}.vcf.gz \
+${SAMPLE[2]}.vcf.gz \
+--threads 32 -f PASS -0 -m all| ${BCFTOOLS} view -O z -o ${M_VCF}
+
+${BCFTOOLS} index ${M_VCF}
+${BCFTOOLS} view ${M_VCF} -H | wc -l
+
+${RTG} mendelian -i ${M_VCF} -o ${M_VCF_annotated} --pedigree ${_TRIO_PED} -t ${REF_SDF_FILE_PATH} |& tee MDL.log
+
+${BCFTOOLS} view -i 'INFO/MCV ~ "0/0+0/0->0/1"' ${M_VCF_annotated} -O z -o ${denovo_VCF}
+${BCFTOOLS} index ${denovo_VCF}
+${BCFTOOLS} view -i "INFO/DNP>0.9" ${denovo_VCF} -s ${SAMPLE[0]} -O z -o ${denovo_VCF_sf}
+${BCFTOOLS} index ${denovo_VCF_sf}
+# high quality de novo variants set is in ${denovo_VCF_sf}
+
+```

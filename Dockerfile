@@ -49,8 +49,8 @@ RUN wget http://www.bio8.cs.hku.hk/clair3_trio/clair3_models/clair3_models.tar.g
     tar -zxvf /opt/models/clair3_models/clair3_models.tar.gz -C /opt/models/clair3_models && \
     rm /opt/models/clair3_models/clair3_models.tar.gz && \
 	wget http://www.bio8.cs.hku.hk/clair3_trio/clair3_denovo_models/clair3_denovo_models.tar.gz -P /opt/models/clair3_denovo_models && \
-    tar -zxvf /opt/models/clair3_trio_models/clair3_denovo_models.tar.gz -C /opt/models/clair3_denovo_models && \
-    rm /opt/models/clair3_trio_models/clair3_denovo_models.tar.gz && \
+    tar -zxvf /opt/models/clair3_denovo_models/clair3_denovo_models.tar.gz -C /opt/models/clair3_denovo_models && \
+    rm /opt/models/clair3_denovo_models/clair3_denovo_models.tar.gz && \
     cd /opt/bin && \
     PREFIX=/opt/conda/envs/clair3 PYTHON=/opt/conda/envs/clair3/bin/python && \
     rm -rf /opt/bin/samtools-* /opt/bin/longphase-*
