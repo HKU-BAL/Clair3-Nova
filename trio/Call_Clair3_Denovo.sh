@@ -431,6 +431,9 @@ then
     echo "[INFO] Finish Haplotagging, output haplotagged file [Parent 2]: ${OUTPUT_FOLDER}/phased_${SAMPLE_P2}.bam"
 fi
 
+mv ${OUTPUT_FOLDER}/${SAMPLE_C}_c3d.vcf.gz ${TMP_FILE_PATH}/${SAMPLE_C}.vcf.gz 
+mv ${OUTPUT_FOLDER}/${SAMPLE_P1}_c3d.vcf.gz ${TMP_FILE_PATH}/${SAMPLE_P1}.vcf.gz 
+mv ${OUTPUT_FOLDER}/${SAMPLE_P2}_c3d.vcf.gz ${TMP_FILE_PATH}/${SAMPLE_P2}.vcf.gz 
 
 echo $''
 echo "[INFO] Finish calling, output VCF file [Child]: ${OUTPUT_FOLDER}/${SAMPLE_C}.vcf.gz"

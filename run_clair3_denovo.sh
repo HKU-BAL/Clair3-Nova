@@ -48,7 +48,7 @@ print_help_messages()
     echo $'--include_all_ctgs             Call variants on all contigs, otherwise call in chr{1..22,X,Y} and {1..22,X,Y}, default: disable.'
     echo $'--snp_min_af=FLOAT             Minimum SNP AF required for a candidate variant. Lowering the value might increase a bit of sensitivity in trade of speed and accuracy, default: ont:0.08,hifi:0.08,ilmn:0.08.'
     echo $'--indel_min_af=FLOAT           Minimum Indel AF required for a candidate variant. Lowering the value might increase a bit of sensitivity in trade of speed and accuracy, default: ont:0.15,hifi:0.08,ilmn:0.08.'
-    echo $'--denovo_model_prefix=STR        Model prefix in trio & denovo calling, including $prefix.data-00000-of-00002, $prefix.data-00001-of-00002 $prefix.index, default: trio.'
+    echo $'--denovo_model_prefix=STR        Model prefix in trio & denovo calling, including $prefix.data-00000-of-00002, $prefix.data-00001-of-00002 $prefix.index, default: denovo.'
     echo $'--enable_output_phasing        Output phased variants using whatshap, default: disable.'
     echo $'--enable_output_haplotagging   Output enable_output_haplotagging BAM variants using whatshap, default: disable.'
     echo $'--enable_phasing               It means `--enable_output_phasing`. The option is retained for backward compatibility.'
