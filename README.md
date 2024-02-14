@@ -35,7 +35,7 @@ Download models from [here](http://www.bio8.cs.hku.hk/clair3_trio/clair3_denovo_
 
 |           Model name           |  Platform   |    Training samples         |   Date   |  Basecaller  | File    |          Link            |
 | :----------------------------: | :---------: | :----------------------------------------------------------: | -------------------------------- | :--------------------------: | ----------------| :-------------------: |
-|   r1041_e82_400bps_sup_denovo |     ONT 10.4.1    |                         HG002,3,4      |             20240206 | Dorado v4.0.0 SUP | r1041_e82_400bps_sup_denovo.tar.gz      | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_denovo_models/r1041_e82_400bps_sup_denovo.tar.gz) |
+|   r1041_e82_400bps_sup_denovo |     ONT r10.4.1 E8.2 (5kHz)    |                         HG002,3,4      |             20240206 | Dorado v4.0.0 SUP | r1041_e82_400bps_sup_denovo.tar.gz      | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_denovo_models/r1041_e82_400bps_sup_denovo.tar.gz) |
 
 
 
@@ -45,7 +45,7 @@ When using the Clair3-Denovo model, please use a corresponding Clair3 model for 
 
 |           Model name           |  Platform   |                       Training samples                       | Date   |  Basecaller  | File                                |                             Link                             |
 | :----------------------------: | :---------: | :----------------------------------------------------------: | -------------------------------- | :--------------------------: | ----------------------------------- | :----------------------------------------------------------: |
-|  r1041_e82_400bps_sup_v430  |     ONT r10.4.1 E8.2 (5kHz)  |                    HG002,4,5  | - |  Dorado v4.3.0 SUP | r1041_e82_400bps_sup_v430.tar.gz          | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_models/r1041_e82_400bps_sup_v430.tar.gz) |
+|  r1041_e82_400bps_sup_v430  |     ONT r10.4.1 E8.2 (5kHz)  |       -   | - |  Dorado v4.3.0 SUP | r1041_e82_400bps_sup_v430.tar.gz          | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_models/r1041_e82_400bps_sup_v430.tar.gz) |
 
 
 ----
