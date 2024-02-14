@@ -1,5 +1,4 @@
-# Clair3-Denovo: <em>de novo</em> variant calling in trio using Nanopore long-reads
-
+# Clair3-Denovo: Accurate Nanopore long-read <em>de novo</em> variant calling in family trios with deep neural networks 
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![install with docker](https://img.shields.io/badge/install%20with-docker-blue)](https://hub.docker.com/r/hkubal/clair3-denovo)
 
