@@ -151,10 +151,10 @@ _SAMPLE_P2="[Parent2 sample ID]"            # parent2 sample ID, e.g. HG004
 _REF=${_INPUT_DIR}/ref.fa                   # change your reference file name here
 _OUTPUT_DIR="[YOUR_OUTPUT_FOLDER]"          # e.g. ./output
 _THREADS="[MAXIMUM_THREADS]"                # e.g. 8
-_MODEL_DIR_C3="[Clair3 MODEL NAME]"         # e.g. ./models/clair3_models/ont
-_MODEL_DIR_C3D="[Clair3-Denovo MODEL NAME]"   # e.g. ./models/clair3_denovo_models/c3t_hg002_g422
+_MODEL_DIR_C3="[Clair3 MODEL NAME]"         # e.g. ./models/clair3_models/r1041_e82_400bps_sup_v430
+_MODEL_DIR_C3D="[Clair3-Denovo MODEL NAME]"   # e.g. ./models/clair3_denovo_models/r1041_e82_400bps_sup_denovo
 
-./run_clair3_trio.sh \
+./run_clair3_denovo.sh \
   --bam_fn_c=${_BAM_C} \    
   --bam_fn_p1=${_BAM_P1} \
   --bam_fn_p2=${_BAM_P2} \
@@ -162,7 +162,7 @@ _MODEL_DIR_C3D="[Clair3-Denovo MODEL NAME]"   # e.g. ./models/clair3_denovo_mode
   --ref_fn=${_REF} \
   --threads=${_THREADS} \
   --model_path_clair3="${_MODEL_DIR_C3}" \
-  --model_path_clair3_trio="${_MODEL_DIR_C3T}" \
+  --model_path_clair3_denovo="${_MODEL_DIR_C3D}" \
   --sample_name_c=${_SAMPLE_C} \
   --sample_name_p1=${_SAMPLE_P1} \
   --sample_name_p2=${_SAMPLE_P2}
