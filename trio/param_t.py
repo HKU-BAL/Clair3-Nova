@@ -1,4 +1,4 @@
-TOOL_NAME = "clair3_denovo"
+TOOL_NAME = "clair3_nova"
 VERSION='v0.1'
 
 from itertools import accumulate
@@ -70,12 +70,6 @@ padding_channel = (
 padding_channel_size = len(padding_channel)
 p_ont_input_shape = [matrix_depth_dict['ont'], no_of_positions, padding_channel_size]
 p_ont_input_shape_trio = [matrix_depth_dict['ont'] * 3, no_of_positions, padding_channel_size]
-
-
-# iinfo(min=-128, max=127, dtype=int8)
-# padding_value_c = "100"
-# padding_value_p1 = "100"
-# padding_value_p2 = "100"
 
 padding_value_c = "30"
 padding_value_p1 = "60"

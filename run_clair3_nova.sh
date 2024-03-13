@@ -1,7 +1,7 @@
 #!/bin/bash
 SCRIPT_NAME=$(basename "$0")
 SCRIPT_PATH=`dirname "$0"`
-Usage="Usage: ./${SCRIPT_NAME} --bam_fn_c=BAM --bam_fn_p1=BAM --bam_fn_p2=BAM --ref_fn=REF --output=OUTPUT_DIR --threads=THREADS --model_path_clair3=MODEL_PREFIX --model_path_clair3_denovo=MODEL_PREFIX [--bed_fn=BED] [options]"
+Usage="Usage: ./${SCRIPT_NAME} --bam_fn_c=BAM --bam_fn_p1=BAM --bam_fn_p2=BAM --ref_fn=REF --output=OUTPUT_DIR --threads=THREADS --model_path_clair3=MODEL_PREFIX --model_path_clair3_nova=MODEL_PREFIX [--bed_fn=BED] [options]"
 CMD="$0 $@"
 
 # ENTRANCE SCRIPT FOR CLAIR3-TRIO, SETTING VARIABLE AND CALL TRIO
@@ -10,8 +10,7 @@ VERSION='v0.1'
 set -e
 print_help_messages()
 {
-    echo $''
-    echo "Clair3-Denovo ${VERSION}"
+    echo "Clair3-Nova ${VERSION}"
     echo ${Usage}
     echo $''
     echo $'Required parameters:'
@@ -20,14 +19,14 @@ print_help_messages()
     echo $'--bam_fn_p2=FILE               BAM file input, for parent1. The input file must be samtools indexed.'
     echo $'--ref_fn=FILE                  FASTA reference file input. The input file must be samtools indexed.'
     echo $'--model_path_clair3=STR        The folder path containing a Clair3 model (requiring six files in the folder, including pileup.data-00000-of-00002, pileup.data-00001-of-00002 pileup.index, full_alignment.data-00000-of-00002, full_alignment.data-00001-of-00002  and full_alignment.index).'
-    echo $'--model_path_clair3_denovo=STR   The folder path containing a Clair3-Denovo model (files structure same as Clair3).'
+    echo $'--model_path_clair3_nova=STR   The folder path containing a Clair3-Nova model (files structure same as Clair3).'
     echo $'-t, --threads=INT              Max #threads to be used. The full genome will be divided into small chunks for parallel processing. Each chunk will use 4 threads. The #chunks being processed simultaneously is ceil(#threads/4)*3. 3 is the overloading factor.'
     echo $'-o, --output=PATH              VCF/GVCF output directory.'
     echo $''
     echo $''
     echo $"Optional parameters (Use \"=value\" instead of \" value\". E.g., \"--bed_fn=fn.bed\" instead of \"--bed_fn fn.bed\".):"
-    echo $'-v, --version                  Check Clair3-Denovo version'
-    echo $'-h, --help                     Check Clair3-Denovo help page'
+    echo $'-v, --version                  Check Clair3-Nova version'
+    echo $'-h, --help                     Check Clair3-Nova help page'
     echo $'--bed_fn=FILE                  Call variants only in the provided bed regions.'
     echo $'--vcf_fn=FILE                  Candidate sites VCF file input, variants will only be called at the sites in the VCF file if provided.'
     echo $'--ctg_name=STR                 The name of the sequence to be processed.'
@@ -48,7 +47,7 @@ print_help_messages()
     echo $'--include_all_ctgs             Call variants on all contigs, otherwise call in chr{1..22,X,Y} and {1..22,X,Y}, default: disable.'
     echo $'--snp_min_af=FLOAT             Minimum SNP AF required for a candidate variant. Lowering the value might increase a bit of sensitivity in trade of speed and accuracy, default: ont:0.08,hifi:0.08,ilmn:0.08.'
     echo $'--indel_min_af=FLOAT           Minimum Indel AF required for a candidate variant. Lowering the value might increase a bit of sensitivity in trade of speed and accuracy, default: ont:0.15,hifi:0.08,ilmn:0.08.'
-    echo $'--denovo_model_prefix=STR        Model prefix in trio & denovo calling, including $prefix.data-00000-of-00002, $prefix.data-00001-of-00002 $prefix.index, default: denovo.'
+    echo $'--nova_model_prefix=STR        Model prefix in trio & nova calling, including $prefix.data-00000-of-00002, $prefix.data-00001-of-00002 $prefix.index, default: nova.'
     echo $'--enable_output_phasing        Output phased variants using whatshap, default: disable.'
     echo $'--enable_output_haplotagging   Output enable_output_haplotagging BAM variants using whatshap, default: disable.'
     echo $'--enable_phasing               It means `--enable_output_phasing`. The option is retained for backward compatibility.'
@@ -61,7 +60,7 @@ print_help_messages()
 
 print_version()
 {
-    echo "Clair3-Denovo $1"
+    echo "Clair3-Nova $1"
     exit 0
 }
 
@@ -70,9 +69,9 @@ WARNING="\\033[33m[WARNING]"
 NC="\\033[0m"
 
 ARGS=`getopt -o b:f:t:p:o:hv \
--l bam_fn_c:,bam_fn_p1:,bam_fn_p2:,ref_fn:,threads:,model_path_clair3:,model_path_clair3_denovo:,platform:,output:,\
+-l bam_fn_c:,bam_fn_p1:,bam_fn_p2:,ref_fn:,threads:,model_path_clair3:,model_path_clair3_nova:,platform:,output:,\
 bed_fn::,vcf_fn::,ctg_name::,sample_name_c::,sample_name_p1::,sample_name_p2::,qual::,samtools::,python::,pypy::,parallel::,whatshap::,chunk_num::,chunk_size::,var_pct_full::,ref_pct_full::,var_pct_phasing::,\
-resumn::,snp_min_af::,indel_min_af::,pileup_model_prefix::,denovo_model_prefix::,fast_mode,gvcf,pileup_only,pileup_phasing,print_ref_calls,haploid_precise,haploid_sensitive,include_all_ctgs,no_phasing_for_fa,call_snp_only,remove_intermediate_dir,enable_output_phasing,enable_output_haplotagging,enable_phasing,enable_long_indel,gvcf,help,version -n 'run_clair3_denovo.sh' -- "$@"`
+resumn::,snp_min_af::,indel_min_af::,pileup_model_prefix::,nova_model_prefix::,fast_mode,gvcf,pileup_only,pileup_phasing,print_ref_calls,haploid_precise,haploid_sensitive,include_all_ctgs,no_phasing_for_fa,call_snp_only,remove_intermediate_dir,enable_output_phasing,enable_output_haplotagging,enable_phasing,enable_long_indel,gvcf,help,version -n 'run_clair3_nova.sh' -- "$@"`
 
 if [ $? != 0 ] ; then echo"No input. Terminating...">&2 ; exit 1 ; fi
 eval set -- "${ARGS}"
@@ -115,7 +114,7 @@ ENABLE_OUTPUT_PHASING=False
 ENABLE_OUTPUT_HAPLOTAGGING=False
 ENABLE_LONG_INDEL=False
 PILEUP_PREFIX="pileup"
-DENOVO_PREFIX="denovo"
+NOVA_PREFIX="nova"
 
 while true; do
    case "$1" in
@@ -125,7 +124,7 @@ while true; do
     -f|--ref_fn ) REFERENCE_FILE_PATH="$2"; shift 2 ;;
     -t|--threads ) THREADS="$2"; shift 2 ;;
     --model_path_clair3 ) MODEL_PATH_C3="$2"; shift 2 ;;
-    --model_path_clair3_denovo ) MODEL_PATH_C3D="$2"; shift 2 ;;
+    --model_path_clair3_nova ) MODEL_PATH_C3D="$2"; shift 2 ;;
     -p|--platform ) PLATFORM="$2"; shift 2 ;;
     -o|--output ) OUTPUT_FOLDER="$2"; shift 2 ;;
     --bed_fn ) BED_FILE_PATH="$2"; shift 2 ;;
@@ -148,7 +147,7 @@ while true; do
     --snp_min_af ) SNP_AF="$2"; shift 2 ;;
     --indel_min_af ) INDEL_AF="$2"; shift 2 ;;
     --pileup_model_prefix ) PILEUP_PREFIX="$2"; shift 2 ;;
-    --denovo_model_prefix ) DENOVO_PREFIX="$2"; shift 2 ;;
+    --nova_model_prefix ) NOVA_PREFIX="$2"; shift 2 ;;
     --gvcf ) GVCF=True; shift 1 ;;
     --resumn ) RESUMN="$2"; shift 2 ;;
     --pileup_only ) PILEUP_ONLY=True; shift 1 ;;
@@ -182,7 +181,7 @@ if [ -z ${BAM_FILE_PATH_C} ] || [ -z ${BAM_FILE_PATH_P1} ] || [ -z ${BAM_FILE_PA
       if [ -z ${THREADS} ]; then echo -e "${ERROR} Require to define max threads to be used by --threads=THREADS${NC}"; fi
       if [ -z ${OUTPUT_FOLDER} ]; then echo -e "${ERROR} Require to define output folder by --output=OUTPUT_DIR${NC}"; fi
       if [ -z ${MODEL_PATH_C3} ]; then echo -e "${ERROR} Require to define model path for cliar3 by --model_path_clair3=MODEL_PREFIX${NC}"; fi
-      if [ -z ${MODEL_PATH_C3D} ]; then echo -e "${ERROR} Require to define model path for clair3-denovo by --model_path_clair3_denovo=MODEL_PREFIX${NC}"; fi
+      if [ -z ${MODEL_PATH_C3D} ]; then echo -e "${ERROR} Require to define model path for clair3-nova by --model_path_clair3_nova=MODEL_PREFIX${NC}"; fi
       exit 1;
 fi
 
@@ -193,7 +192,7 @@ if [ `pwd` = "/opt/bin" ]; then
     if [[ ! "${BAM_FILE_PATH_P2}" = /* ]]; then echo -e "${ERROR} Require to use absolute file path --bam_fn_p2=FILE${NC}"; exit 1; fi
     if [[ ! "${REFERENCE_FILE_PATH}" = /* ]]; then echo -e "${ERROR} Require to use absolute file path --ref_fn=FILE${NC}"; exit 1; fi
     if [[ ! "${MODEL_PATH_C3}" = /* ]]; then echo -e "${ERROR} Require to use absolute file path --model_path_clair3=PATH${NC}"; exit 1; fi
-    if [[ ! "${MODEL_PATH_C3D}" = /* ]]; then echo -e "${ERROR} Require to use absolute file path --model_path_clair3_denovo=PATH${NC}"; exit 1; fi
+    if [[ ! "${MODEL_PATH_C3D}" = /* ]]; then echo -e "${ERROR} Require to use absolute file path --model_path_clair3_nova=PATH${NC}"; exit 1; fi
     if [[ ! "${OUTPUT_FOLDER}" = /* ]]; then echo -e "${ERROR} Require to use absolute file path --output=PATH${NC}"; exit 1; fi
     if [ "${BED_FILE_PATH}" != "EMPTY" ] &&  [ ! -z ${BED_FILE_PATH} ] && [[ ! "${BED_FILE_PATH}" = /* ]]; then echo -e "${ERROR} Require to use absolute file path --bef_fn=FILE${NC}"; exit 1; fi
     if [ "${VCF_FILE_PATH}" != "EMPTY" ] &&  [ ! -z ${VCF_FILE_PATH} ] && [[ ! "${VCF_FILE_PATH}" = /* ]]; then echo -e "${ERROR} Require to use absolute file path --vcf_fn=FILE${NC}"; exit 1; fi
@@ -234,7 +233,7 @@ if [[ "${ENABLE_OUTPUT_HAPLOTAGGING}" == "True" ]]; then ENABLE_OUTPUT_PHASING=T
 
 # optional parameters should use "="
 (time (
-echo -e "\033[0;94mClair3-Denovo \\033[0m (${VERSION})"
+echo -e "\033[0;94mClair3-Nova \\033[0m (${VERSION})"
 echo "-----"
 echo "[INFO] OUTPUT FOLDER: ${OUTPUT_FOLDER}"
 echo "[INFO] BAM_C FILE PATH:  ${BAM_FILE_PATH_C}"
@@ -245,8 +244,8 @@ echo "[INFO] SAMPLE NAME PARENT1: ${SAMPLE_P1}"
 echo "[INFO] SAMPLE NAME PARENT2: ${SAMPLE_P2}"
 echo "[INFO] REFERENCE FILE PATH: ${REFERENCE_FILE_PATH}"
 echo "[INFO] CLAIR3 MODEL PATH: ${MODEL_PATH_C3}"
-echo "[INFO] CLAIR3-DENOVO MODEL PATH: ${MODEL_PATH_C3D}"
-echo "[INFO] CLAIR3-DENOVO MODEL PREFIX: ${DENOVO_PREFIX}"
+echo "[INFO] CLAIR3-NOVA MODEL PATH: ${MODEL_PATH_C3D}"
+echo "[INFO] CLAIR3-NOVA MODEL PREFIX: ${NOVA_PREFIX}"
 echo "[INFO] PLATFORM: ${PLATFORM}"
 echo "[INFO] THREADS: ${THREADS}"
 echo "[INFO] BED FILE PATH: ${BED_FILE_PATH}"
@@ -324,25 +323,25 @@ if [ -z ${PRO} ]; then echo -e "${ERROR} Use '--var_pct_full=FLOAT' instead of '
 if [ -z ${REF_PRO} ]; then echo -e "${ERROR} Use '--ref_pct_full=FLOAT' instead of '--ref_pct_full FLOAT' for optional parameters${NC}"; exit 1 ; fi
 if [ -z ${PHASING_PCT} ]; then echo -e "${ERROR} Use '--var_pct_phasing=FLOAT' instead of '--var_pct_phasing FLOAT' for optional parameters${NC}"; exit 1 ; fi
 if [ -z ${PILEUP_PREFIX} ]; then echo -e "${ERROR} Use '--pileup_model_prefix=STR' instead of '--pileup_model_prefix STR' for optional parameters${NC}"; exit 1 ; fi
-if [ -z ${DENOVO_PREFIX} ]; then echo -e "${ERROR} Use '--denovo_model_prefix=STR' instead of '--denovo_model_prefix STR' for optional parameters${NC}"; exit 1 ; fi
+if [ -z ${NOVA_PREFIX} ]; then echo -e "${ERROR} Use '--nova_model_prefix=STR' instead of '--nova_model_prefix STR' for optional parameters${NC}"; exit 1 ; fi
 if [ -z ${RESUMN} ]; then echo -e "${ERROR} Use '--resumn=0,1,2,3,4'for optional parameters${NC}"; exit 1 ; fi
 
 # model prefix detection
-if [ ! -f ${MODEL_PATH_C3D}/${DENOVO_PREFIX}.index ]; then echo -e "${ERROR} No denovo model found in provided model path and model prefix ${MODEL_PATH_C3D}/${DENOVO_PREFIX} ${NC}"; exit 1; fi
+if [ ! -f ${MODEL_PATH_C3D}/${NOVA_PREFIX}.index ]; then echo -e "${ERROR} No nova model found in provided model path and model prefix ${MODEL_PATH_C3D}/${NOVA_PREFIX} ${NC}"; exit 1; fi
 
 # keep command line info., for vcf header
 mkdir -p ${OUTPUT_FOLDER}/tmp
 echo "$CMD" > "${OUTPUT_FOLDER}/tmp/CMD"
 
 set -x
-${SCRIPT_PATH}/trio/Call_Clair3_Denovo.sh \
+${SCRIPT_PATH}/trio/Call_Clair3_Nova.sh \
     --bam_fn_c ${BAM_FILE_PATH_C} \
     --bam_fn_p1 ${BAM_FILE_PATH_P1} \
     --bam_fn_p2 ${BAM_FILE_PATH_P2} \
     --ref_fn ${REFERENCE_FILE_PATH} \
     --threads ${THREADS} \
     --model_path_clair3 ${MODEL_PATH_C3} \
-    --model_path_clair3_denovo ${MODEL_PATH_C3D} \
+    --model_path_clair3_nova ${MODEL_PATH_C3D} \
     --platform ${PLATFORM} \
     --output ${OUTPUT_FOLDER} \
     --bed_fn=${BED_FILE_PATH} \
@@ -375,14 +374,14 @@ ${SCRIPT_PATH}/trio/Call_Clair3_Denovo.sh \
     --include_all_ctgs=${INCLUDE_ALL_CTGS} \
     --no_phasing_for_fa=${NO_PHASING} \
     --pileup_model_prefix=${PILEUP_PREFIX} \
-    --denovo_model_prefix=${DENOVO_PREFIX} \
+    --nova_model_prefix=${NOVA_PREFIX} \
     --remove_intermediate_dir=${RM_TMP_DIR} \
     --enable_phasing=${ENABLE_OUTPUT_PHASING} \
     --enable_output_haplotagging=${ENABLE_OUTPUT_HAPLOTAGGING} \
     --enable_long_indel=${ENABLE_LONG_INDEL}
 
 
-)) |& tee ${OUTPUT_FOLDER}/run_clair3_denovo.log
+)) |& tee ${OUTPUT_FOLDER}/run_clair3_nova.log
 
 
 

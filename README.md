@@ -1,6 +1,6 @@
-# Clair3-Denovo: Accurate Nanopore long-read <em>de novo</em> variant calling in family trios with deep neural networks 
+# Clair3-Nova: Accurate Nanopore long-read <em>de novo</em> variant calling in family trios with deep neural networks 
 
-[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![install with docker](https://img.shields.io/badge/install%20with-docker-blue)](https://hub.docker.com/r/hkubal/clair3-denovo)
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![install with docker](https://img.shields.io/badge/install%20with-docker-blue)](https://hub.docker.com/r/hkubal/clair3-nova)
 
 
 Contact: Ruibang Luo, Junhao Su  
@@ -31,17 +31,17 @@ Email: rbluo@cs.hku.hk, jhsu@cs.hku.hk
 
 ## Pre-trained Models
 
-Download models from [here](http://www.bio8.cs.hku.hk/clair3_trio/clair3_denovo_models/) or click on the links below.
+Download models from [here](http://www.bio8.cs.hku.hk/clair3_trio/clair3_nova_models/) or click on the links below.
 
 |           Model name           |  Platform   |    Training samples         |   Date   |  Basecaller  | File    |          Link            |
 | :----------------------------: | :---------: | :----------------------------------------------------------: | -------------------------------- | :--------------------------: | ----------------| :-------------------: |
-|   r1041_e82_400bps_sup_denovo |     ONT r10.4.1 E8.2 (5kHz)    |                         HG002,3,4      |             20240206 | Dorado v4.0.0 SUP | r1041_e82_400bps_sup_denovo.tar.gz      | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_denovo_models/r1041_e82_400bps_sup_denovo.tar.gz) |
+|   r1041_e82_400bps_sup_nova |     ONT r10.4.1 E8.2 (5kHz)    |                         HG002,3,4      |             20240206 | Dorado v4.0.0 SUP | r1041_e82_400bps_sup_nova.tar.gz      | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_nova_models/r1041_e82_400bps_sup_nova.tar.gz) |
 
 
 
 ### Clair3's Pre-trained Models
 
-When using the Clair3-Denovo model, please use a corresponding Clair3 model for Pileup calling. Check [here](https://github.com/HKU-BAL/Clair3#pre-trained-models) or [here](https://github.com/nanoporetech/rerio) for more information about Clair3 pretrained model.
+When using the Clair3-Nova model, please use a corresponding Clair3 model for Pileup calling. Check [here](https://github.com/HKU-BAL/Clair3#pre-trained-models) or [here](https://github.com/nanoporetech/rerio) for more information about Clair3 pretrained model.
 
 |           Model name           |  Platform   |                       Training samples                       | Date   |  Basecaller  | File                                |                             Link                             |
 | :----------------------------: | :---------: | :----------------------------------------------------------: | -------------------------------- | :--------------------------: | ----------------------------------- | :----------------------------------------------------------: |
@@ -55,7 +55,7 @@ When using the Clair3-Denovo model, please use a corresponding Clair3 model for 
 
 ### Option 1. Docker pre-built image
 
-A pre-built docker image is available [here](https://hub.docker.com/r/hkubal/clair3-denovo). With it you can run Clair3-Denovo using a single command.
+A pre-built docker image is available [here](https://hub.docker.com/r/hkubal/clair3-nova). With it you can run Clair3-Nova using a single command.
 
 Caution: Absolute path is needed for both `INPUT_DIR` and `OUTPUT_DIR`.
 
@@ -65,14 +65,14 @@ REF=${_INPUT_DIR}/ref.fa                   # change your reference file name her
 OUTPUT_DIR="[YOUR_OUTPUT_FOLDER]"          # e.g. /output
 THREADS="[MAXIMUM_THREADS]"                # e.g. 8
 MODEL_C3="[Clair3 MODEL NAME]"         	   # e.g. Clair3 model, e.g. r1041_e82_400bps_sup_v430
-MODEL_C3D="[Clair3-Trio MODEL NAME]"       # e.g. Clair3-Denovo model, r1041_e82_400bps_sup_denovo
+MODEL_C3D="[Clair3-Trio MODEL NAME]"       # e.g. Clair3-Nova model, r1041_e82_400bps_sup_nova
 
 
 docker run -it \
   -v ${INPUT_DIR}:${INPUT_DIR} \
   -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
-  hkubal/clair3-denovo:latest \
-  /opt/bin/run_clair3_denovo.sh \
+  hkubal/clair3-nova:latest \
+  /opt/bin/run_clair3_nova.sh \
   --ref_fn=${INPUT_DIR}/ref.fa \                  ## change your reference file name here
   --bam_fn_c=${INPUT_DIR}/child_input.bam \       ## change your child's bam file name here 
   --bam_fn_p1=${INPUT_DIR}/parent1_input.bam \    ## change your parent-1's bam file name here     
@@ -82,7 +82,7 @@ docker run -it \
   --sample_name_p2=${SAMPLE_P2} \                 ## change your parent-2's name here
   --threads=${THREADS} \                          ## maximum threads to be used
   --model_path_clair3="/opt/models/clair3_models/${MODEL_C3}" \
-  --model_path_clair3_denovo="/opt/models/clair3_denovo_models/${MODEL_C3D}" \
+  --model_path_clair3_nova="/opt/models/clair3_nova_models/${MODEL_C3D}" \
   --output=${OUTPUT_DIR}                          ## absolute output path prefix 
 
 ```
@@ -100,7 +100,7 @@ chmod +x ./Miniconda3-latest-Linux-x86_64.sh
 ./Miniconda3-latest-Linux-x86_64.sh
 ```
 
-**Install Clair3 env and Clair3-Denovo using anaconda step by step:**
+**Install Clair3 env and Clair3-Nova using anaconda step by step:**
 
 
 ```bash
@@ -124,9 +124,9 @@ conda install -c conda-forge xz zlib bzip2 automake curl -y
 # tensorflow-addons is required in training
 pip install tensorflow-addons
 
-# clone Clair3-Denovo
-git clone https://github.com/HKU-BAL/Clair3-Denovo.git
-cd Clair3-Denovo
+# clone Clair3-Nova
+git clone https://github.com/HKU-BAL/Clair3-Nova.git
+cd Clair3-Nova
 
 # download Clair3's pre-trained models
 mkdir -p models/clair3_models
@@ -134,13 +134,13 @@ wget http://www.bio8.cs.hku.hk/clair3_trio/clair3_models/clair3_models.tar.gz
 tar -zxvf clair3_models.tar.gz -C ./models/clair3_models
 
 
-# download Clair3-Denovo's pre-trained models
-mkdir -p models/clair3_denovo_models
-wget http://www.bio8.cs.hku.hk/clair3_trio/clair3_denovo_models/clair3_denovo_models.tar.gz 
-tar -zxvf clair3_denovo_models.tar.gz -C ./models/clair3_denovo_models
+# download Clair3-Nova's pre-trained models
+mkdir -p models/clair3_nova_models
+wget http://www.bio8.cs.hku.hk/clair3_trio/clair3_nova_models/clair3_nova_models.tar.gz 
+tar -zxvf clair3_nova_models.tar.gz -C ./models/clair3_nova_models
 
 
-# run clair3-denovo
+# run clair3-nova
 _INPUT_DIR="[YOUR_INPUT_FOLDER]"            # e.g. ./input
 _BAM_C=${_INPUT_DIR}/input_child.bam        # chnage your child's bam file name here
 _BAM_P1=${_INPUT_DIR}/input_parent1.bam     # chnage your parent-1's bam file name here
@@ -152,9 +152,9 @@ _REF=${_INPUT_DIR}/ref.fa                   # change your reference file name he
 _OUTPUT_DIR="[YOUR_OUTPUT_FOLDER]"          # e.g. ./output
 _THREADS="[MAXIMUM_THREADS]"                # e.g. 8
 _MODEL_DIR_C3="[Clair3 MODEL NAME]"         # e.g. ./models/clair3_models/r1041_e82_400bps_sup_v430
-_MODEL_DIR_C3D="[Clair3-Denovo MODEL NAME]"   # e.g. ./models/clair3_denovo_models/r1041_e82_400bps_sup_denovo
+_MODEL_DIR_C3D="[Clair3-Nova MODEL NAME]"   # e.g. ./models/clair3_nova_models/r1041_e82_400bps_sup_nova
 
-./run_clair3_denovo.sh \
+./run_clair3_nova.sh \
   --bam_fn_c=${_BAM_C} \    
   --bam_fn_p1=${_BAM_P1} \
   --bam_fn_p2=${_BAM_P2} \
@@ -162,7 +162,7 @@ _MODEL_DIR_C3D="[Clair3-Denovo MODEL NAME]"   # e.g. ./models/clair3_denovo_mode
   --ref_fn=${_REF} \
   --threads=${_THREADS} \
   --model_path_clair3="${_MODEL_DIR_C3}" \
-  --model_path_clair3_denovo="${_MODEL_DIR_C3D}" \
+  --model_path_clair3_nova="${_MODEL_DIR_C3D}" \
   --sample_name_c=${_SAMPLE_C} \
   --sample_name_p1=${_SAMPLE_P1} \
   --sample_name_p2=${_SAMPLE_P2}
@@ -173,25 +173,25 @@ _MODEL_DIR_C3D="[Clair3-Denovo MODEL NAME]"   # e.g. ./models/clair3_denovo_mode
 
 Building a docker image.
 ```
-# clone Clair3-Denovo
-git clone https://github.com/hku-bal/Clair3-Denovo.git
-cd Clair3-Denovo
+# clone Clair3-Nova
+git clone https://github.com/hku-bal/Clair3-Nova.git
+cd Clair3-Nova
 
-# build a docker image named hkubal/clair3-denovo:latest
+# build a docker image named hkubal/clair3-nova:latest
 # might require docker authentication to build docker image 
-docker build -f ./Dockerfile -t hkubal/clair3-denovo:latest .
+docker build -f ./Dockerfile -t hkubal/clair3-nova:latest .
 
 # run clair3-docker image like 
-docker run -it hkubal/clair3-denovo:latest /opt/bin/run_clair3_denovo.sh --help
+docker run -it hkubal/clair3-nova:latest /opt/bin/run_clair3_nova.sh --help
 ```
 
 
 ## Output Files
 
-Clair3-Denovo outputs files in VCF/GVCF format for the trio & de novo genotype. The output files (for a trio [C ], [P1], [P2]) including:
+Clair3-Nova outputs files in VCF/GVCF format for the trio & de novo genotype. The output files (for a trio [C ], [P1], [P2]) including:
 
     .
-    ├── run_clair3_denovo.log		        # Clair3-Denovo running log
+    ├── run_clair3_nova.log		        # Clair3-Nova running log
     ├── [C ].vcf.gz				# Called variants in vcf format for [C ]
     ├── [P1].vcf.gz				# Called variants in vcf format for [P1]
     ├── [P2].vcf.gz				# Called variants in vcf format for [P2]
@@ -215,7 +215,7 @@ TBC
 
 ```bash
 
-# for clair3-denovo output of ${SAMPLE[0]}.vcf.gz, ${SAMPLE[1]}.vcf.gz, ${SAMPLE[2]}.vcf.gz 
+# for clair3-nova output of ${SAMPLE[0]}.vcf.gz, ${SAMPLE[1]}.vcf.gz, ${SAMPLE[2]}.vcf.gz 
 
 BCFTOOLS=bcftools
 RTG=rtg

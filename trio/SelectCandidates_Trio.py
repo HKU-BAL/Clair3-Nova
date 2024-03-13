@@ -146,7 +146,7 @@ def SelectCandidates(args):
     lq_can_p2 = get_low_qual_rec(candidate_p2, ref_pct_full, var_pct_full)
 
     low_qual_ref_list, low_qual_variant_list = lq_can_c[0], lq_can_c[1]
-    print('DEPTH %s' % (args.depth))
+    #print('DEPTH %s' % (args.depth))
     # import pdb; pdb.set_trace()
     print('[ORI C] {} {} select ref calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_ref_list[-1][1], len(low_qual_ref_list)))
     print('[ORI C] {} {} select variant calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_variant_list[-1][1], len(low_qual_variant_list)))

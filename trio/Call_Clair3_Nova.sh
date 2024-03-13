@@ -1,13 +1,13 @@
 #!/bin/bash
 SCRIPT_NAME=$(basename "$0")
-Usage="Usage: ./${SCRIPT_NAME} --bam_fn_c=BAM --bam_fn_p1=BAM --bam_fn_p2=BAM --ref_fn=REF --output=OUTPUT_DIR --threads=THREADS --model_path_clair3=MODEL_PREFIX --model_path_clair3_denovo=MODEL_PREFIX [--bed_fn=BED] [options]"
+Usage="Usage: ./${SCRIPT_NAME} --bam_fn_c=BAM --bam_fn_p1=BAM --bam_fn_p2=BAM --ref_fn=REF --output=OUTPUT_DIR --threads=THREADS --model_path_clair3=MODEL_PREFIX --model_path_clair3_nova=MODEL_PREFIX [--bed_fn=BED] [options]"
 
 set -e
 ARGS=`getopt -o f:t:p:o:r::c::s::h::g \
--l bam_fn_c:,bam_fn_p1:,bam_fn_p2:,ref_fn:,threads:,model_path_clair3:,model_path_clair3_denovo:,platform:,output:,\
+-l bam_fn_c:,bam_fn_p1:,bam_fn_p2:,ref_fn:,threads:,model_path_clair3:,model_path_clair3_nova:,platform:,output:,\
 bed_fn::,vcf_fn::,ctg_name::,sample_name_c::,sample_name_p1::,sample_name_p2::,help::,qual::,samtools::,python::,pypy::,parallel::,whatshap::,chunk_num::,chunk_size::,var_pct_full::,var_pct_phasing::,\
 snp_min_af::,indel_min_af::,ref_pct_full::,pileup_only::,pileup_phasing::,fast_mode::,gvcf::,print_ref_calls::,haploid_precise::,haploid_sensitive::,include_all_ctgs::,\
-no_phasing_for_fa::,pileup_model_prefix::,denovo_model_prefix::,call_snp_only::,remove_intermediate_dir::,enable_phasing::,enable_output_haplotagging::,enable_long_indel:: -n 'run_clair3_denovo.sh' -- "$@"`
+no_phasing_for_fa::,pileup_model_prefix::,nova_model_prefix::,call_snp_only::,remove_intermediate_dir::,enable_phasing::,enable_output_haplotagging::,enable_long_indel:: -n 'run_clair3_nova.sh' -- "$@"`
 
 if [ $? != 0 ] ; then echo"No input. Terminating...">&2 ; exit 1 ; fi
 eval set -- "${ARGS}"
@@ -44,7 +44,7 @@ SNP_ONLY=False
 INCLUDE_ALL_CTGS=False
 NO_PHASING=False
 PILEUP_PREFIX="pileup"
-DENOVO_PREFIX="denovo"
+DENOVO_PREFIX="nova"
 RM_TMP_DIR=False
 ENABLE_PHASING=False
 ENABLE_LONG_INDEL=False
@@ -59,7 +59,7 @@ while true; do
     -f|--ref_fn ) REFERENCE_FILE_PATH="$2"; shift 2 ;;
     -t|--threads ) THREADS="$2"; shift 2 ;;
 	--model_path_clair3 ) MODEL_PATH_C3="$2"; shift 2 ;;
-    --model_path_clair3_denovo ) MODEL_PATH_C3D="$2"; shift 2 ;;
+    --model_path_clair3_nova ) MODEL_PATH_C3D="$2"; shift 2 ;;
     -p|--platform ) PLATFORM="$2"; shift 2 ;;
     -o|--output ) OUTPUT_FOLDER="$2"; shift 2 ;;
     --bed_fn ) BED_FILE_PATH="$2"; shift 2 ;;
@@ -88,7 +88,7 @@ while true; do
     --snp_min_af ) SNP_AF="$2"; shift 2 ;;
     --indel_min_af ) INDEL_AF="$2"; shift 2 ;;
     --pileup_model_prefix ) PILEUP_PREFIX="$2"; shift 2 ;;
-    --denovo_model_prefix ) DENOVO_PREFIX="$2"; shift 2 ;;
+    --nova_model_prefix ) DENOVO_PREFIX="$2"; shift 2 ;;
     --haploid_precise ) HAP_PRE="$2"; shift 2 ;;
     --haploid_sensitive ) HAP_SEN="$2"; shift 2 ;;
     --include_all_ctgs ) INCLUDE_ALL_CTGS="$2"; shift 2 ;;
@@ -132,7 +132,7 @@ export OPENBLAS_NUM_THREADS=1
 export GOTO_NUM_THREADS=1
 export OMP_NUM_THREADS=1
 
-echo "[TRIO INFO] * Clair3-Denovo pipeline start"
+echo "[TRIO INFO] * Clair3-Nova pipeline start"
 echo "[TRIO INFO] * 0 Check environment variables"
 
 ${PYTHON} ${CLAIR3_TRIO} CheckEnvs_Trio \
@@ -279,7 +279,7 @@ time ${PARALLEL} --retries ${RETRIES} --joblog ${LOG_PATH}/parallel_2_fiter_hete
 use_gpu=0
 # export CUDA_VISIBLE_DEVICES="0"
 
-echo "[TRIO INFO] * 3 Call Clair3-Denovo model"
+echo "[TRIO INFO] * 3 Call Clair3-Nova model"
 cat ${CANDIDATE_BED_PATH}/FULL_ALN_FILE_* > ${CANDIDATE_BED_PATH}/FULL_ALN_FILES
 
 time ${PARALLEL} --retries ${RETRIES} --joblog ${LOG_PATH}/parallel_3_callvarbam.log -j${THREADS_LOW} \
@@ -336,7 +336,7 @@ mkdir -p ${GVCF_TMP_PATH}/${SAMPLE_P2}
 
 
 echo $''
-echo "[TRIO INFO] * 4 Merge trio & denovo VCF"
+echo "[TRIO INFO] * 4 Merge trio & nova VCF"
 time ${PARALLEL} --retries ${RETRIES} --joblog ${LOG_PATH}/parallel_4_merge_vcf.log -j${THREADS} \
 "${PYPY} ${CLAIR3_TRIO} MergeVcf_Trio \
    --pileup_vcf_fn {3} \

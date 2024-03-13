@@ -54,7 +54,7 @@ def check_return_code(signum, frame):
 
 def Run(args):
 
-    print('run callvarbam')
+    print('run CallVarBam_Denovo')
     basedir = dirname(__file__)
 
     CT_Bin = basedir + "/../clair3.py MergeTensorsBam_Trio"

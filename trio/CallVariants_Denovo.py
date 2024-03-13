@@ -620,6 +620,23 @@ def possible_outcome_probabilites_from(
     homo_variant_probability = genotype_probabilities[Genotype.homo_variant]
     hetero_variant_probability = genotype_probabilities[Genotype.hetero_variant]
 
+    # TBC
+    #print(alt_info_dict)
+    # if is hetero indel in alt, increase hetero probability
+    n_alt_info_dict = sorted(alt_info_dict.items(), key=lambda x:x[1], reverse=True)
+    if len(n_alt_info_dict) >= 2:
+        alt_1 = n_alt_info_dict[0][1] if len(n_alt_info_dict[0][0]) > 2 else 0
+        alt_2 = n_alt_info_dict[1][1] if len(n_alt_info_dict[1][0]) > 2 else 0
+        #print(n_alt_info_dict, alt_1, alt_2, genotype_probabilities)
+
+        if alt_1 > 10 and alt_2 > 10 and (abs(alt_1-alt_2) < 5) and hetero_variant_probability > 0.1 and homo_variant_probability > hetero_variant_probability:
+            homo_variant_probability -= (8 - abs(alt_1-alt_2)) * 0.1
+            homo_variant_probability = max(0, homo_variant_probability)
+            #hetero_variant_probability += (8 - abs(alt_1-alt_2)) * 0.1
+            #hetero_variant_probability = min(1.0, hetero_variant_probability)
+    #print(homo_variant_probability, hetero_variant_probability)
+    #import pdb; pdb.set_trace()
+
     reference_gt21 = gt21_enum_from_label(reference_base + reference_base)
 
     if not add_indel_length:
