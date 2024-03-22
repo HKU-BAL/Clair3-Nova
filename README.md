@@ -6,6 +6,7 @@
 Contact: Ruibang Luo, Junhao Su  
 Email: rbluo@cs.hku.hk, jhsu@cs.hku.hk  
 
+Clair3-Nova is the 2nd generation of Clair3-Trio with the additional ability to call de novo variants in trio samples.
 
 ----
 
