@@ -25,6 +25,7 @@ Clair3-Nova is the 2nd generation of [Clair3-Trio](https://github.com/HKU-BAL/Cl
 
 ## Latest Updates
 
+*v0.2 (Apr 2, 2024)*: added models for r10.4.1 and r9.4.1
 *v0.1 (Feb 6, 2024)*: Initial release.
 
 
@@ -37,6 +38,7 @@ Download models from [here](http://www.bio8.cs.hku.hk/clair3_trio/clair3_nova_mo
 |           Model name           |  Platform   |    Training samples         |   Date   |  Basecaller  | File    |          Link            |
 | :----------------------------: | :---------: | :----------------------------------------------------------: | -------------------------------- | :--------------------------: | ----------------| :-------------------: |
 |   r1041_e82_400bps_sup_nova |     ONT r10.4.1 E8.2 (5kHz)    |                         HG002,3,4      |             20240206 | Dorado v4.0.0 SUP | r1041_e82_400bps_sup_nova.tar.gz      | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_nova_models/r1041_e82_400bps_sup_nova.tar.gz) |
+|   r941_prom_sup_g5014_nova |     ONT r9.4.1 |                         HG002,3,4      |             20240330 | Guppy5 sup| r941_prom_sup_g5014_nova.tar.gz      | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_nova_models/r941_prom_sup_g5014_nova.tar.gz) |
 
 
 
@@ -47,6 +49,8 @@ When using the Clair3-Nova model, please use a corresponding Clair3 model for Pi
 |           Model name           |  Platform   |                       Training samples                       | Date   |  Basecaller  | File                                |                             Link                             |
 | :----------------------------: | :---------: | :----------------------------------------------------------: | -------------------------------- | :--------------------------: | ----------------------------------- | :----------------------------------------------------------: |
 |  r1041_e82_400bps_sup_v430  |     ONT r10.4.1 E8.2 (5kHz)  |       -   | - |  Dorado v4.3.0 SUP | r1041_e82_400bps_sup_v430.tar.gz          | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_models/r1041_e82_400bps_sup_v430.tar.gz) |
+|  r941_prom_sup_g5014 |     ONT r9.4.1 |       -   | - |  Guppyu5 sup | r941_prom_sup_g5014.tar.gz          | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_models/r941_prom_sup_g5014.tar.gz) |
+
 
 
 ----
@@ -251,7 +255,7 @@ ${RTG} mendelian -i ${M_VCF} -o ${M_VCF_annotated} --pedigree ${_TRIO_PED} -t ${
 
 ${BCFTOOLS} view -i 'INFO/MCV ~ "0/0+0/0->0/1"' ${M_VCF_annotated} -O z -o ${denovo_VCF}
 ${BCFTOOLS} index ${denovo_VCF}
-${BCFTOOLS} view -i "INFO/DNP>0.9" ${denovo_VCF} -s ${SAMPLE[0]} -O z -o ${denovo_VCF_sf}
+${BCFTOOLS} view -i "INFO/DNP>0.8.5" ${denovo_VCF} -s ${SAMPLE[0]} -O z -o ${denovo_VCF_sf}
 ${BCFTOOLS} index ${denovo_VCF_sf}
 # high quality de novo variants set is in ${denovo_VCF_sf}
 
