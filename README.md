@@ -1,3 +1,9 @@
+<div align="center">
+  <a href="https://en.wiktionary.org/wiki/%E7%9C%BC" target="_blank">
+    <img src="docs/images/clair3_trio_nova.png" width = "90" height = "90" alt="Clair3-Trio Logo">
+  </a>
+</div>
+
 # Clair3-Nova: Accurate Nanopore long-read <em>de novo</em> variant calling in family trios with deep neural networks 
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![install with docker](https://img.shields.io/badge/install%20with-docker-blue)](https://hub.docker.com/r/hkubal/clair3-nova)
