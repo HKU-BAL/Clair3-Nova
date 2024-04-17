@@ -143,8 +143,17 @@ def sort_vcf_from(args):
         if "contig=<ID=" in new_line:
             return header
         # add chr to last line
-        if "#CHROM" in new_line and "#CHROM" not in header[-1]:
-            return header + [new_line]
+        #if "#CHROM" in new_line and "#CHROM" not in header[-1]:
+        #    return header + [new_line]
+        if "#CHROM" in new_line:
+            # if original header git not have chrom
+            is_not_chrom = all(["#CHROM" not in i for i in header]) 
+            #print(new_line, is_not_chrom)
+            #print(["#CHROM" not in i for i in header])
+            if is_not_chrom:
+                return header + [new_line]
+            else:
+                return header
         new_header = []
         _new_meta = new_line.split(',')[0] if ("##FORMAT" in new_line or "##INFO" in new_line) else None
         for i in header:
@@ -237,7 +246,7 @@ def sort_vcf_from(args):
     if vcf_fn_suffix == ".tmp.gvcf":
         return
     if vcf_fn_suffix == ".gvcf":
-        print("[INFO] Need some time to compress and index GVCF file...")
+	print("[INFO] compressing and indexing GVCF files ...")
     compress_index_vcf(output_fn)
 
 

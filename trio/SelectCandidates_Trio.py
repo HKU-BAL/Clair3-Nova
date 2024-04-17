@@ -148,16 +148,19 @@ def SelectCandidates(args):
     low_qual_ref_list, low_qual_variant_list = lq_can_c[0], lq_can_c[1]
     #print('DEPTH %s' % (args.depth))
     # import pdb; pdb.set_trace()
-    print('[ORI C] {} {} select ref calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_ref_list[-1][1], len(low_qual_ref_list)))
-    print('[ORI C] {} {} select variant calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_variant_list[-1][1], len(low_qual_variant_list)))
+    if len(low_qual_ref_list) > 0:
+        print('[ORI C] {} {} select ref calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_ref_list[-1][1], len(low_qual_ref_list)))
+        print('[ORI C] {} {} select variant calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_variant_list[-1][1], len(low_qual_variant_list)))
  
     low_qual_ref_list, low_qual_variant_list = lq_can_p1[0], lq_can_p1[1]
-    print('[ORI P1] {} {} select ref calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_ref_list[-1][1], len(low_qual_ref_list)))
-    print('[ORI P1] {} {} select variant calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_variant_list[-1][1], len(low_qual_variant_list)))
+    if len(low_qual_ref_list) > 0:
+        print('[ORI P1] {} {} select ref calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_ref_list[-1][1], len(low_qual_ref_list)))
+        print('[ORI P1] {} {} select variant calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_variant_list[-1][1], len(low_qual_variant_list)))
 
     low_qual_ref_list, low_qual_variant_list = lq_can_p2[0], lq_can_p2[1]
-    print('[ORI P2] {} {} select ref calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_ref_list[-1][1], len(low_qual_ref_list)))
-    print('[ORI P2] {} {} select variant calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_variant_list[-1][1], len(low_qual_variant_list)))
+    if len(low_qual_ref_list) > 0:
+        print('[ORI P2] {} {} select ref calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_ref_list[-1][1], len(low_qual_ref_list)))
+        print('[ORI P2] {} {} select variant calling (cutoff {}) to process: {}'.format(sample_name, contig_name, low_qual_variant_list[-1][1], len(low_qual_variant_list)))
 
     can_set_c = set([item[0] for item in lq_can_c[1]])
     can_set_p1 = set([item[0] for item in lq_can_p1[1]])
@@ -192,8 +195,12 @@ def SelectCandidates(args):
     # n_ref_set_size = min(int(_ori_ref_n / _ori_v_n * len(can_set_all)), len(ref_set_all))
     # n_ref_set_size = _ori_ref_n
 
-    print("ori avg v: %d, ref: %d, new union: v %d, ref %d (%.2f%% /%d)" % (_ori_v_n, _ori_ref_n, len(can_set_all), \
+    if len(ref_set_all) > 0:
+        print("ori avg v: %d, ref: %d, new union: v %d, ref %d (%.2f%% /%d)" % (_ori_v_n, _ori_ref_n, len(can_set_all), \
                 n_ref_set_size, n_ref_set_size * 100 / len(ref_set_all), len(ref_set_all)))
+    else:
+        print("ori avg v: %d, ref: %d, new union: v %d, ref %d (%d)" % (_ori_v_n, _ori_ref_n, len(can_set_all), \
+                n_ref_set_size, len(ref_set_all)))
 
     tmp_ref_l = list(ref_set_all)
     random.seed(0)
