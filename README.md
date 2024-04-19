@@ -12,7 +12,7 @@
 Contact: Ruibang Luo, Junhao Su  
 Email: rbluo@cs.hku.hk, jhsu@cs.hku.hk  
 
-Clair3-Nova is the 2nd generation of [Clair3-Trio](https://github.com/HKU-BAL/Clair3-Trio). Nova supports _de novo_ variant calling in trio.
+Clair3-Nova is the 2nd generation of [Clair3-Trio](https://github.com/HKU-BAL/Clair3-Trio). Nova supports _de novo_ variant calling in trio. To cite Clair3-Nova, please cite [Clair3-trio (Briefing in Bioinformatics, 2022)](https://academic.oup.com/bib/article/23/5/bbac301/6645484).
 
 ----
 
