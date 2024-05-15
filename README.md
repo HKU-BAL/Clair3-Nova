@@ -31,6 +31,8 @@ Clair3-Nova is the 2nd generation of [Clair3-Trio](https://github.com/HKU-BAL/Cl
 
 ## Latest Updates
 
+*v0.2.1 (May 15, 2024)*: fix bugs of SelectCandidates_Trio.
+
 *v0.2 (Apr 2, 2024)*: added models for r10.4.1 and r9.4.1
 
 *v0.1 (Feb 6, 2024)*: Initial release.

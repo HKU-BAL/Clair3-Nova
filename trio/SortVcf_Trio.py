@@ -246,7 +246,7 @@ def sort_vcf_from(args):
     if vcf_fn_suffix == ".tmp.gvcf":
         return
     if vcf_fn_suffix == ".gvcf":
-	print("[INFO] compressing and indexing GVCF files ...")
+        print("[INFO] compressing and indexing GVCF files ...")
     compress_index_vcf(output_fn)
 
 
