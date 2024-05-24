@@ -225,14 +225,20 @@ Clair3-Nova outputs files in VCF/GVCF format for the trio & de novo genotype. Th
 
 ## How to get high-quality de novo variants from the output
 
-TBC
 
 ```bash
-
 # for clair3-nova output of ${SAMPLE[0]}.vcf.gz, ${SAMPLE[1]}.vcf.gz, ${SAMPLE[2]}.vcf.gz 
-
+# requires bcftools and rtg tools
+# install bcftools: https://github.com/samtools/bcftools
+# rtg tools: https://github.com/RealTimeGenomics/rtg-tools
 BCFTOOLS=bcftools
 RTG=rtg
+
+
+# input files
+# requires trio;s ped file, reference sdf file
+
+# example input
 _TRIO_PED=/autofs/bal31/jhsu/home/data/giab/trio.ped  
 cat $_TRIO_PED
     #PED format pedigree
@@ -246,6 +252,9 @@ cat $_TRIO_PED
     1 HG003 0 0 1 0
     1 HG004 0 0 2 0
 REF_SDF_FILE_PATH=/autofs/bal36/jhsu/r10/input/GCA_000001405.15_GRCh38_no_alt_analysis_set.sdf
+
+# output file
+# merged and de novo vcfs
 M_VCF=trio_m.vcf.gz
 M_VCF_annotated=trio_m_ann.vcf.gz
 denovo_VCF=trio_all_denovo.vcf.gz
