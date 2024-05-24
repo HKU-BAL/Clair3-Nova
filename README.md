@@ -227,17 +227,17 @@ Clair3-Nova outputs files in VCF/GVCF format for the trio & de novo genotype. Th
 
 
 ```bash
-# for clair3-nova output of ${SAMPLE[0]}.vcf.gz, ${SAMPLE[1]}.vcf.gz, ${SAMPLE[2]}.vcf.gz 
+# input: clair3-nova's output of ${SAMPLE[0]}.vcf.gz, ${SAMPLE[1]}.vcf.gz, ${SAMPLE[2]}.vcf.gz files
+# output: merged vcf and de novo variants
+
 # requires bcftools and rtg tools
 # install bcftools: https://github.com/samtools/bcftools
-# rtg tools: https://github.com/RealTimeGenomics/rtg-tools
+# install rtg tools: https://github.com/RealTimeGenomics/rtg-tools
 BCFTOOLS=bcftools
 RTG=rtg
 
-
 # input files
-# requires trio;s ped file, reference sdf file
-
+# requires trio's ped file, reference sdf file
 # example input
 _TRIO_PED=/autofs/bal31/jhsu/home/data/giab/trio.ped  
 cat $_TRIO_PED
@@ -260,7 +260,6 @@ M_VCF_annotated=trio_m_ann.vcf.gz
 denovo_VCF=trio_all_denovo.vcf.gz
 denovo_VCF_sf=trio_high_quality_denovo.vcf.gz
 
-  
 ${BCFTOOLS} merge ${SAMPLE[0]}.vcf.gz \
 ${SAMPLE[1]}.vcf.gz \
 ${SAMPLE[2]}.vcf.gz \
@@ -276,5 +275,4 @@ ${BCFTOOLS} index ${denovo_VCF}
 ${BCFTOOLS} view -i "INFO/DNP>0.8.5" ${denovo_VCF} -s ${SAMPLE[0]} -O z -o ${denovo_VCF_sf}
 ${BCFTOOLS} index ${denovo_VCF_sf}
 # high quality de novo variants set is in ${denovo_VCF_sf}
-
 ```
