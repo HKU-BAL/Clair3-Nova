@@ -251,28 +251,34 @@ cat $_TRIO_PED
     1 HG002 HG003 HG004 1 0
     1 HG003 0 0 1 0
     1 HG004 0 0 2 0
-REF_SDF_FILE_PATH=/autofs/bal36/jhsu/r10/input/GCA_000001405.15_GRCh38_no_alt_analysis_set.sdf
+# your reference sdf file path
+REF_SDF_FILE_PATH=./GCA_000001405.15_GRCh38_no_alt_analysis_set.sdf
 
-# output file
+# output files
 # merged and de novo vcfs
 M_VCF=trio_m.vcf.gz
 M_VCF_annotated=trio_m_ann.vcf.gz
 denovo_VCF=trio_all_denovo.vcf.gz
 denovo_VCF_sf=trio_high_quality_denovo.vcf.gz
 
+# merge trio vcfs
 ${BCFTOOLS} merge ${SAMPLE[0]}.vcf.gz \
 ${SAMPLE[1]}.vcf.gz \
 ${SAMPLE[2]}.vcf.gz \
 --threads 32 -f PASS -0 -m all| ${BCFTOOLS} view -O z -o ${M_VCF}
 
+# index
 ${BCFTOOLS} index ${M_VCF}
-${BCFTOOLS} view ${M_VCF} -H | wc -l
+#${BCFTOOLS} view ${M_VCF} -H | wc -l
 
+# annotate with Mendelian inherrtance pattern
 ${RTG} mendelian -i ${M_VCF} -o ${M_VCF_annotated} --pedigree ${_TRIO_PED} -t ${REF_SDF_FILE_PATH} |& tee MDL.log
 
+# get de novo variants
 ${BCFTOOLS} view -i 'INFO/MCV ~ "0/0+0/0->0/1"' ${M_VCF_annotated} -O z -o ${denovo_VCF}
 ${BCFTOOLS} index ${denovo_VCF}
-${BCFTOOLS} view -i "INFO/DNP>0.8.5" ${denovo_VCF} -s ${SAMPLE[0]} -O z -o ${denovo_VCF_sf}
+# get high quality de novo variants
+${BCFTOOLS} view -i "INFO/DNP>0.85" ${denovo_VCF} -s ${SAMPLE[0]} -O z -o ${denovo_VCF_sf}
 ${BCFTOOLS} index ${denovo_VCF_sf}
 # high quality de novo variants set is in ${denovo_VCF_sf}
 ```
