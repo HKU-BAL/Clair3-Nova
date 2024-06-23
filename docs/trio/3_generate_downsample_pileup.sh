@@ -1,4 +1,4 @@
-# using Clair3 to generating pileup calling on each downsampled sample
+source /autofs/bal36/jhsu/trio/script/data_config_trio.sh
 
 PARALLEL=parallel
 PYPY=pypy
@@ -7,18 +7,18 @@ PYTHON3=python3
 PLATFORM="ont"
 
 # Clair3 folder
-_ORI_CLAIR3="XXX"
+_ORI_CLAIR3="/autofs/bal36/jhsu/trio/Clair3-Nova"
 
 # note the use right models for your training
 # check https://github.com/HKU-BAL/Clair3#pre-trained-models
-_MODEL_DIR="XXXX/r941_prom_sup_g5014/"
+#_MODEL_DIR="/autofs/bal31/jhsu/home/data/clair3_models/r941_prom_sup_g5014/"
+_MODEL_DIR="/autofs/bal36/jhsu/trio/models/rerio/clair3_models/r1041_e82_400bps_hac_v430/"
 C3_THREADS=36                                         # Clair3 threads number
 
-# Clair3-Trio's clair3.py path
-CLAIR3_TRIO="XXX/clair3.py"      
+# Clair3-Trio's path
+CLAIR3_TRIO="/autofs/bal36/jhsu/trio/Clair3-Nova_dev/clair3.py"      
 
-# output folder for pileup files
-DATASET_FOLDER_PATH="XXX"
+DATASET_FOLDER_PATH="/autofs/bal36/jhsu/trio/r1041_hac"
 
 # creating working folder
 PILEUP_OUTPUT_PATH="${DATASET_FOLDER_PATH}/3_pileup"
@@ -29,35 +29,31 @@ cd ${PILEUP_OUTPUT_PATH}
 
 # input files and parameters
 # training chrosome name, and prefix
-# excluded the chr20 for testing
-CHR=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 21 22) # please update this part for your dataset
+CHR=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 21 22)
 CHR_PREFIX="chr"
 
-CHILD_SAMPLE_N="HG002" #please update this part for your dataset
+# GH (tb update to github)
+CHILD_SAMPLE_N="HG002"
 P1_SAMPLE_N="HG003"
 P2_SAMPLE_N="HG004"
 
-# bam file from 2_generate_downsample_phased_bam
-# please update this part for your dataset
 # sample name
-# if you have four downsampled dataset, you need to secific 4 * 3 sample name in this setting.
 ALL_SAMPLE=(
 ${CHILD_SAMPLE_N}                
 ${P1_SAMPLE_N}                   
-${P2_SAMPLE_N}                   
+${P2_SAMPLE_N}                
 ${CHILD_SAMPLE_N}                
 ${P1_SAMPLE_N}                   
-${P2_SAMPLE_N}                   
+${P2_SAMPLE_N}                
 ${CHILD_SAMPLE_N}                
 ${P1_SAMPLE_N}                   
-${P2_SAMPLE_N}                   
+${P2_SAMPLE_N}                
 ${CHILD_SAMPLE_N}                
 ${P1_SAMPLE_N}                   
-${P2_SAMPLE_N}                   
+${P2_SAMPLE_N}                
 )
 
 
-# list number same as in $ALL_SAMPLE
 DEPTHS=(                            # data coverage
 10
 10
@@ -73,35 +69,32 @@ DEPTHS=(                            # data coverage
 80
 )
 
-# list number same as in $ALL_SAMPLE
-# phased bam files, from the 2_generate_downsample_phased_bam.sh
 ALL_PHASED_BAM_FILE_PATH=(
-"XXX/bam/phased/HG002/HG002_10.bam"
-"XXX/bam/phased/HG003/HG003_10.bam"
-"XXX/bam/phased/HG004/HG004_10.bam"
-"XXX/bam/phased/HG002/HG002_30.bam"
-"XXX/bam/phased/HG003/HG003_30.bam"
-"XXX/bam/phased/HG004/HG004_30.bam"
-"XXX/bam/phased/HG002/HG002_60.bam"
-"XXX/bam/phased/HG003/HG003_60.bam"
-"XXX/bam/phased/HG004/HG004_60.bam"
-"XXX/bam/phased/HG002/HG002_80.bam"
-"XXX/bam/phased/HG003/HG003_80.bam"
-"XXX/bam/phased/HG004/HG004_80.bam"
+"/autofs/bal36/jhsu/trio/r1041_hac/2_bam/HG002/HG002_10.bam"
+"/autofs/bal36/jhsu/trio/r1041_hac/2_bam/HG003/HG003_10.bam"
+"/autofs/bal36/jhsu/trio/r1041_hac/2_bam/HG004/HG004_10.bam"
+"/autofs/bal36/jhsu/trio/r1041_hac/2_bam/HG002/HG002_30.bam"
+"/autofs/bal36/jhsu/trio/r1041_hac/2_bam/HG003/HG003_30.bam"
+"/autofs/bal36/jhsu/trio/r1041_hac/2_bam/HG004/HG004_30.bam"
+"/autofs/bal36/jhsu/trio/r1041_hac/2_bam/HG002/HG002_60.bam"
+"/autofs/bal36/jhsu/trio/r1041_hac/2_bam/HG003/HG003_60.bam"
+"/autofs/bal36/jhsu/trio/r1041_hac/2_bam/HG004/HG004_60.bam"
+"/autofs/bal36/jhsu/trio/r1041_hac/2_bam/HG002/HG002_80.bam"
+"/autofs/bal36/jhsu/trio/r1041_hac/2_bam/HG003/HG003_80.bam"
+"/autofs/bal36/jhsu/trio/r1041_hac/2_bam/HG004/HG004_80.bam"
 )
 
-# please update this part for your dataset
-# HOME_DIR="/autofs/bal31/jhsu/home"
-# REF_FILE_PATH="${HOME_DIR}/data/reference/grch38_no_alt_plus_hs38d1/GCA_000001405.15_GRCh38_no_alt_plus_hs38d1_analysis_set.fna"
-# merged trio's bed file using the 0_gerneate_trio_bed.sh
-# _TRIO_BED_PATH="${HOME_DIR}/data/giab/020304.bed" 
+#HOME_DIR="/autofs/bal31/jhsu/home"
+#REF_FILE_PATH="${HOME_DIR}/data/reference/grch38_no_alt_plus_hs38d1/GCA_000001405.15_GRCh38_no_alt_plus_hs38d1_analysis_set.fna"
+#CHILD_BED_FILE_PATH="${HOME_DIR}/data/giab/${CHILD_SAMPLE_N}_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed"
+#P1_BED_FILE_PATH="${HOME_DIR}/data/giab/${P1_SAMPLE_N}_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed"
+#P2_BED_FILE_PATH="${HOME_DIR}/data/giab/${P2_SAMPLE_N}_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed"
 
-# your reference file
-REF_FILE_PATH="XXXX/GCA_000001405.15_GRCh38_no_alt_plus_hs38d1_analysis_set.fna"
-# your trio bed file, from 0_generate_trio_bed.sh
-_TRIO_BED_PATH="XXXX/data/giab/020304.bed" 
+# GH 
+# merge trio's bed file using the gerneate_trio_bed.sh
+#_TRIO_BED_PATH="${HOME_DIR}/data/giab/020304.bed"
 
-# list number same as in $ALL_SAMPLE
+
 ALL_REFERENCE_FILE_PATH=(
 "${REF_FILE_PATH}"
 "${REF_FILE_PATH}"
@@ -118,7 +111,6 @@ ALL_REFERENCE_FILE_PATH=(
 )
 
 
-# list number same as in $ALL_SAMPLE
 ALL_BED_FILE_PATH=(
 ${_TRIO_BED_PATH}
 ${_TRIO_BED_PATH}

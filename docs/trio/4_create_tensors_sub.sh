@@ -1,4 +1,4 @@
-source /autofs/bal36/jhsu/r10/scripts/data_config_trio.sh
+source /autofs/bal36/jhsu/trio/script/data_config_trio.sh
 
 PARALLEL=parallel
 PYPY=pypy
@@ -9,11 +9,11 @@ THREADS=8                                            # threads number
 
 
 # Clair3-Trio's path
-CLAIR3_TRIO="/autofs/bal31/jhsu/home/projects/git/clair3-trio-clean-v1/clair3.py"      
+CLAIR3_TRIO="/autofs/bal36/jhsu/trio/Clair3-Nova/clair3.py"      
 
 # creating working folder
-TRAIN_FOLDER_PREFIX="/autofs/bal36/jhsu/r10/output/4_build_tensors"
-BUILD_N="SUB_1356"                       # data building data, e.g. "HG002_all"
+TRAIN_FOLDER_PREFIX="/autofs/bal36/jhsu/trio/r1041_hac/4_build_tensors"
+BUILD_N="SUB_1368"                       # data building data, e.g. "HG002_all"
 
 # Temporary working directories
 TRAIN_FOLDER="${TRAIN_FOLDER_PREFIX}"
@@ -45,7 +45,8 @@ _LOG_SUF=""                         # log file suffix
 
 # input files and parameters
 # training chrosome name, and prefix
-CHR=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 21 22)
+#CHR=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 21 22)
+CHR=(1 4 7 10 13 16 19 21 22)
 CHR_PREFIX="chr"
 
 # GH (tb update to github)
@@ -70,9 +71,6 @@ ${P2_SAMPLE_N}
 ${CHILD_SAMPLE_N}
 ${P1_SAMPLE_N}
 ${P2_SAMPLE_N}
-${CHILD_SAMPLE_N}
-${P1_SAMPLE_N}
-${P2_SAMPLE_N}
 )
 
 TRIO_N="${CHILD_SAMPLE_N}_TRIO_SUB"     # your trio name, e.g. HG002_TRIO
@@ -82,21 +80,18 @@ DEPTHS=(                            # data coverage
 31
 31
 31
-51
-51
-51
-53
-53
-53
 61
 61
 61
-63
-63
-63
-6550
-6550
-6550
+81
+81
+81
+13
+13
+13
+18
+18
+18
 )
 
 #HOME_DIR="/autofs/bal31/jhsu/home"
@@ -110,9 +105,6 @@ DEPTHS=(                            # data coverage
 #_TRIO_BED_PATH="${HOME_DIR}/data/giab/020304.bed"
 
 ALL_REFERENCE_FILE_PATH=(
-"${REF_FILE_PATH}"
-"${REF_FILE_PATH}"
-"${REF_FILE_PATH}"
 "${REF_FILE_PATH}"
 "${REF_FILE_PATH}"
 "${REF_FILE_PATH}"
@@ -147,9 +139,6 @@ ${_TRIO_BED_PATH}
 ${_TRIO_BED_PATH}
 ${_TRIO_BED_PATH}
 ${_TRIO_BED_PATH}
-${_TRIO_BED_PATH}
-${_TRIO_BED_PATH}
-${_TRIO_BED_PATH}
 )
 
 
@@ -159,67 +148,60 @@ ${_TRIO_BED_PATH}
 # check the representation_unification_trio.md page for more information
 # for practical concerns, the representation_unification_trio.md require only run once on the highest depth for each sample, while the low coverage can be sampled from the highest coverage data, i.e. merged.bam in the representation_unification folder
 
+ORI_PILEUP_D="/autofs/bal36/jhsu/trio/r1041_hac/3_pileup/"
 ALL_PILEUP_VCF_FILE_PATH=(
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG002_30/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG003_10/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG004_10/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG002_50/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG003_10/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG004_10/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG002_50/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG003_30/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG004_30/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG002_65/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG003_10/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG004_10/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG002_65/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG003_30/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG004_30/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG002_65/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG003_50/pileup.vcf.gz"
-"/autofs/bal36/jhsu/r10/output/3_pileup/HG004_50/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG002_30/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG003_10/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG004_10/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG002_60/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG003_10/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG004_10/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG002_80/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG003_10/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG004_10/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG002_10/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG003_30/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG004_30/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG002_10/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG003_80/pileup.vcf.gz"
+"${ORI_PILEUP_D}/HG004_80/pileup.vcf.gz"
 )
 
+ORI_RU_D="/autofs/bal36/jhsu/fast5/r1041/hac/1_ru"
 ALL_RU_FILE_PATH=(
-"/autofs/bal36/jhsu/r10/output/1_ru/HG002/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG003/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG004/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG002/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG003/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG004/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG002/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG003/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG004/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG002/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG003/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG004/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG002/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG003/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG004/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG002/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG003/"
-"/autofs/bal36/jhsu/r10/output/1_ru/HG004/"
+"${ORI_RU_D}/HG002/"
+"${ORI_RU_D}/HG003/"
+"${ORI_RU_D}/HG004/"
+"${ORI_RU_D}/HG002/"
+"${ORI_RU_D}/HG003/"
+"${ORI_RU_D}/HG004/"
+"${ORI_RU_D}/HG002/"
+"${ORI_RU_D}/HG003/"
+"${ORI_RU_D}/HG004/"
+"${ORI_RU_D}/HG002/"
+"${ORI_RU_D}/HG003/"
+"${ORI_RU_D}/HG004/"
+"${ORI_RU_D}/HG002/"
+"${ORI_RU_D}/HG003/"
 )
 
+ORI_BAM_D="/autofs/bal36/jhsu/trio/r1041_hac/2_bam"
 ALL_PHASED_BAM_FILE_PATH=(
-"/autofs/bal36/jhsu/r10/output/2_bam/HG002/HG002_30.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG003/HG003_10.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG004/HG004_10.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG002/HG002_50.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG003/HG003_10.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG004/HG004_10.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG002/HG002_50.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG003/HG003_30.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG004/HG004_30.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG002/HG002_65.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG003/HG003_10.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG004/HG004_10.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG002/HG002_65.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG003/HG003_30.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG004/HG004_30.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG002/HG002_65.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG003/HG003_50.bam"
-"/autofs/bal36/jhsu/r10/output/2_bam/HG004/HG004_50.bam"
+"${ORI_BAM_D}/HG002/HG002_30.bam"
+"${ORI_BAM_D}/HG003/HG003_10.bam"
+"${ORI_BAM_D}/HG004/HG004_10.bam"
+"${ORI_BAM_D}/HG002/HG002_60.bam"
+"${ORI_BAM_D}/HG003/HG003_10.bam"
+"${ORI_BAM_D}/HG004/HG004_10.bam"
+"${ORI_BAM_D}/HG002/HG002_80.bam"
+"${ORI_BAM_D}/HG003/HG003_10.bam"
+"${ORI_BAM_D}/HG004/HG004_10.bam"
+"${ORI_BAM_D}/HG002/HG002_10.bam"
+"${ORI_BAM_D}/HG003/HG003_30.bam"
+"${ORI_BAM_D}/HG004/HG004_30.bam"
+"${ORI_BAM_D}/HG002/HG002_10.bam"
+"${ORI_BAM_D}/HG003/HG003_80.bam"
+"${ORI_BAM_D}/HG004/HG004_80.bam"
 )
 
 
@@ -290,6 +272,7 @@ time ${PARALLEL} --joblog ${LOG_PATH}/S_fiter_hete_snp_pileup${_LOG_SUF}.log -j$
 --bed ${_TRIO_BED_PATH} \
 --ctgName ${CHR_PREFIX}{1}" ::: ${CHR[@]} ::: ${INPUT_PILEUP_VCF_C[@]} :::+ ${INPUT_PILEUP_VCF_P1[@]} :::+ ${INPUT_PILEUP_VCF_P2[@]} :::+ ${TRUE_RU_FILE_C[@]} :::+ ${TRUE_RU_FILE_P1[@]} :::+ ${TRUE_RU_FILE_P2[@]} :::+ ${DEPTH_S[@]} |& tee ${LOG_PATH}/FHSP${_LOG_SUF}.log
 
+
 echo "[INFO] Create Tensors"
 time ${PARALLEL} --joblog ${LOG_PATH}/S_create_tensor${_LOG_SUF}.log -j${THREADS} \
 "${PYPY} ${CLAIR3_TRIO} CreateTensorFullAlignment \
@@ -318,20 +301,40 @@ time ${PARALLEL} --joblog ${LOG_PATH}/S_merge_tensors${_LOG_SUF}.log -j${THREADS
 " ::: ${CHR[@]} ::: ${CHUNK_LIST[@]} ::: ${DEPTH_S[@]} |& tee ${LOG_PATH}/MT${_LOG_SUF}.log
 
 
-IF_CHECK_MCV=1  # whether filter MCV in training data
+#IF_CHECK_MCV=1  # whether filter MCV in training data
+#
+#time ${PARALLEL} --joblog ${LOG_PATH}/S_tensor2Bin${_LOG_SUF}.log -j${THREADS} \
+#"${PYTHON3} ${CLAIR3_TRIO} Tensor2Bin_Trio \
+#--tensor_fn ${TENSOR_CANDIDATE_FOLDER_PATH}/tensor_can_${TRIO_N}_{3}_{1} \
+#--var_fn_c {4}/var_ru/var_{1} \
+#--var_fn_p1 {5}/var_ru/var_{1} \
+#--var_fn_p2 {6}/var_ru/var_{1} \
+#--bin_fn ${BINS_FOLDER_PATH}/${TRIO_N}_{3}_{1}_{2} \
+#--chunk_id {2} \
+#--chunk_num ${bin_chunk_num} \
+#--platform ${PLATFORM} \
+#--allow_duplicate_chr_pos \
+#--maximum_non_variant_ratio 1.0 \
+#--check_mcv ${IF_CHECK_MCV} \
+#--shuffle" ::: ${CHR[@]} ::: ${BIN_CHUNK_LIST[@]} ::: ${DEPTH_S[@]} :::+ ${TRUE_RU_FILE_C[@]} :::+ ${TRUE_RU_FILE_P1[@]} :::+ ${TRUE_RU_FILE_P2[@]} |& tee ${LOG_PATH}/T2B${_LOG_SUF}.log
 
-time ${PARALLEL} --joblog ${LOG_PATH}/S_tensor2Bin${_LOG_SUF}.log -j${THREADS} \
-"${PYTHON3} ${CLAIR3_TRIO} Tensor2Bin_Trio \
+THREADS=16
+IF_CHECK_MCV=1  # whether filter MCV in training data
+DENOVO_BINS_FOLDER_PATH="${DATASET_FOLDER_PATH}/denovo_t_bins"
+mkdir -p ${DENOVO_BINS_FOLDER_PATH}
+
+time ${PARALLEL} --resume-failed  --joblog ${LOG_PATH}/S_tensor2Bin${_LOG_SUF}_dn.log -j${THREADS} \
+"${PYTHON3} ${CLAIR3_TRIO} Tensor2Bin_Trio_denovo \
 --tensor_fn ${TENSOR_CANDIDATE_FOLDER_PATH}/tensor_can_${TRIO_N}_{3}_{1} \
 --var_fn_c {4}/var_ru/var_{1} \
 --var_fn_p1 {5}/var_ru/var_{1} \
 --var_fn_p2 {6}/var_ru/var_{1} \
---bin_fn ${BINS_FOLDER_PATH}/${TRIO_N}_{3}_{1}_{2} \
+--bin_fn ${DENOVO_BINS_FOLDER_PATH}/${TRIO_N}_{3}_{1}_{2} \
 --chunk_id {2} \
 --chunk_num ${bin_chunk_num} \
 --platform ${PLATFORM} \
 --allow_duplicate_chr_pos \
 --maximum_non_variant_ratio 1.0 \
 --check_mcv ${IF_CHECK_MCV} \
---shuffle" ::: ${CHR[@]} ::: ${BIN_CHUNK_LIST[@]} ::: ${DEPTH_S[@]} :::+ ${TRUE_RU_FILE_C[@]} :::+ ${TRUE_RU_FILE_P1[@]} :::+ ${TRUE_RU_FILE_P2[@]} |& tee ${LOG_PATH}/T2B${_LOG_SUF}.log
-
+--only_denovo 0 \
+--shuffle" ::: ${CHR[@]} ::: ${BIN_CHUNK_LIST[@]} ::: ${DEPTH_S[@]} :::+ ${TRUE_RU_FILE_C[@]} :::+ ${TRUE_RU_FILE_P1[@]} :::+ ${TRUE_RU_FILE_P2[@]} |& tee ${LOG_PATH}/T2B${_LOG_SUF}_dn.log

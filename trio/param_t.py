@@ -1,5 +1,5 @@
 TOOL_NAME = "clair3_nova"
-VERSION='v0.2'
+VERSION='v0.3'
 
 from itertools import accumulate
 

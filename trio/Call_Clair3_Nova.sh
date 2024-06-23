@@ -7,7 +7,7 @@ ARGS=`getopt -o f:t:p:o:r::c::s::h::g \
 -l bam_fn_c:,bam_fn_p1:,bam_fn_p2:,ref_fn:,threads:,model_path_clair3:,model_path_clair3_nova:,platform:,output:,\
 bed_fn::,vcf_fn::,ctg_name::,sample_name_c::,sample_name_p1::,sample_name_p2::,help::,qual::,samtools::,python::,pypy::,parallel::,whatshap::,chunk_num::,chunk_size::,var_pct_full::,var_pct_phasing::,\
 snp_min_af::,indel_min_af::,ref_pct_full::,pileup_only::,pileup_phasing::,fast_mode::,gvcf::,print_ref_calls::,haploid_precise::,haploid_sensitive::,include_all_ctgs::,\
-no_phasing_for_fa::,pileup_model_prefix::,nova_model_prefix::,call_snp_only::,remove_intermediate_dir::,enable_phasing::,enable_output_haplotagging::,enable_long_indel:: -n 'run_clair3_nova.sh' -- "$@"`
+no_phasing_for_fa::,pileup_model_prefix::,nova_model_prefix::,call_snp_only::,remove_intermediate_dir::,enable_phasing::,enable_output_haplotagging::,keep_iupac_bases::,base_err::,gq_bin_size::,enable_long_indel:: -n 'run_clair3_nova.sh' -- "$@"`
 
 if [ $? != 0 ] ; then echo"No input. Terminating...">&2 ; exit 1 ; fi
 eval set -- "${ARGS}"
@@ -49,6 +49,9 @@ RM_TMP_DIR=False
 ENABLE_PHASING=False
 ENABLE_LONG_INDEL=False
 ENABLE_OUTPUT_HAPLOTAGGING=False
+BASE_ERR=0.001
+GQ_BIN_SIZE=5  
+KEEP_IUPAC_BASES=False 
 
 
 while true; do
@@ -96,6 +99,9 @@ while true; do
     --remove_intermediate_dir ) RM_TMP_DIR="$2"; shift 2 ;;
     --enable_long_indel ) ENABLE_LONG_INDEL="$2"; shift 2 ;;
     --enable_phasing ) ENABLE_PHASING="$2"; shift 2 ;;
+    --base_err ) BASE_ERR="$2"; shift 2 ;;
+    --gq_bin_size ) GQ_BIN_SIZE="$2"; shift 2 ;;   
+    --keep_iupac_bases ) KEEP_IUPAC_BASES="$2"; shift 2 ;;
     --enable_output_haplotagging ) ENABLE_OUTPUT_HAPLOTAGGING="$2"; shift 2 ;;
 
     -- ) shift; break; ;;
@@ -234,6 +240,9 @@ ${PARALLEL} --retries ${RETRIES} -j3 --joblog  ${LOG_PATH}/parallel_1_clair3_pil
    --enable_phasing=${ENABLE_PHASING} \
    --enable_long_indel=${ENABLE_LONG_INDEL} \
    --pileup_model_prefix=${PILEUP_PREFIX} \
+   --base_err=${BASE_ERR} \
+   --gq_bin_size=${GQ_BIN_SIZE} \
+   --keep_iupac_bases=${KEEP_IUPAC_BASES} \
    --fa_model_prefix=full_alignment" ::: ${ALL_SAMPLE[@]} :::+ ${ALL_UNPHASED_BAM_FILE_PATH[@]} |& tee ${LOG_PATH}/1_call_var_bam_pileup.log
 
 
@@ -303,6 +312,7 @@ time ${PARALLEL} --retries ${RETRIES} --joblog ${LOG_PATH}/parallel_3_callvarbam
 --gvcf=${GVCF} \
 --showRef ${SHOW_REF} \
 --tmp_path ${OUTPUT_FOLDER}/tmp \
+--keep_iupac_bases=${KEEP_IUPAC_BASES} \
 --phasing_info_in_bam" :::: ${CANDIDATE_BED_PATH}/FULL_ALN_FILES |& tee ${LOG_PATH}/3_CV.log
 
 ${PARALLEL}  -j${THREADS} \

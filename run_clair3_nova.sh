@@ -5,7 +5,7 @@ Usage="Usage: ./${SCRIPT_NAME} --bam_fn_c=BAM --bam_fn_p1=BAM --bam_fn_p2=BAM --
 CMD="$0 $@"
 
 # ENTRANCE SCRIPT FOR CLAIR3-TRIO, SETTING VARIABLE AND CALL TRIO
-VERSION='v0.1'
+VERSION='v0.3'
 
 set -e
 print_help_messages()
@@ -45,8 +45,8 @@ print_help_messages()
     echo $'--chunk_size=INT               The size of each chuck for parallel processing, default: 5000000.'
     echo $'--print_ref_calls              Show reference calls (0/0) in VCF file, default: disable.'
     echo $'--include_all_ctgs             Call variants on all contigs, otherwise call in chr{1..22,X,Y} and {1..22,X,Y}, default: disable.'
-    echo $'--snp_min_af=FLOAT             Minimum SNP AF required for a candidate variant. Lowering the value might increase a bit of sensitivity in trade of speed and accuracy, default: ont:0.08,hifi:0.08,ilmn:0.08.'
-    echo $'--indel_min_af=FLOAT           Minimum Indel AF required for a candidate variant. Lowering the value might increase a bit of sensitivity in trade of speed and accuracy, default: ont:0.15,hifi:0.08,ilmn:0.08.'
+    echo $'--snp_min_af=FLOAT             Minimum SNP AF required for a candidate variant. Lowering the value might increase a bit of sensitivity in trade of speed and accuracy, default: ont:0.08.'
+    echo $'--indel_min_af=FLOAT           Minimum Indel AF required for a candidate variant. Lowering the value might increase a bit of sensitivity in trade of speed and accuracy, default: ont:0.15.'
     echo $'--nova_model_prefix=STR        Model prefix in trio & nova calling, including $prefix.data-00000-of-00002, $prefix.data-00001-of-00002 $prefix.index, default: nova.'
     echo $'--enable_output_phasing        Output phased variants using whatshap, default: disable.'
     echo $'--enable_output_haplotagging   Output enable_output_haplotagging BAM variants using whatshap, default: disable.'
@@ -55,6 +55,9 @@ print_help_messages()
     echo $'--ref_pct_full=FLOAT           EXPERIMENTAL: Specify an expected percentage of low quality 0/0 variants called in the pileup mode for full-alignment mode calling, default:  0.1 .'
     echo $'--var_pct_phasing=FLOAT        EXPERIMENTAL: Specify an expected percentage of high quality 0/1 variants used in WhatsHap phasing, default: 0.8 for ont guppy5 and 0.7 for other platforms.'
     echo $'--pileup_model_prefix=STR      EXPERIMENTAL: Model prefix in pileup calling, including $prefix.data-00000-of-00002, $prefix.data-00001-of-00002 $prefix.index. default: pileup.'
+    echo $'--keep_iupac_bases             EXPERIMENTAL: Keep IUPAC reference and alternate bases, default: convert all IUPAC bases to N.'
+    echo $'--base_err=FLOAT               EXPERIMENTAL: Estimated base error rate when enabling gvcf option, default: 0.05 (set smaller will increase reduce the number of ./. output).'
+    echo $'--gq_bin_size=INT              EXPERIMENTAL: Default gq bin size for merge non-variant block when enabling gvcf option, default: 5.'
     echo $''
 }
 
@@ -71,7 +74,7 @@ NC="\\033[0m"
 ARGS=`getopt -o b:f:t:p:o:hv \
 -l bam_fn_c:,bam_fn_p1:,bam_fn_p2:,ref_fn:,threads:,model_path_clair3:,model_path_clair3_nova:,platform:,output:,\
 bed_fn::,vcf_fn::,ctg_name::,sample_name_c::,sample_name_p1::,sample_name_p2::,qual::,samtools::,python::,pypy::,parallel::,whatshap::,chunk_num::,chunk_size::,var_pct_full::,ref_pct_full::,var_pct_phasing::,\
-resumn::,snp_min_af::,indel_min_af::,pileup_model_prefix::,nova_model_prefix::,fast_mode,gvcf,pileup_only,pileup_phasing,print_ref_calls,haploid_precise,haploid_sensitive,include_all_ctgs,no_phasing_for_fa,call_snp_only,remove_intermediate_dir,enable_output_phasing,enable_output_haplotagging,enable_phasing,enable_long_indel,gvcf,help,version -n 'run_clair3_nova.sh' -- "$@"`
+keep_iupac_bases,base_err::,gq_bin_size::,resumn::,snp_min_af::,indel_min_af::,pileup_model_prefix::,nova_model_prefix::,fast_mode,gvcf,pileup_only,pileup_phasing,print_ref_calls,haploid_precise,haploid_sensitive,include_all_ctgs,no_phasing_for_fa,call_snp_only,remove_intermediate_dir,enable_output_phasing,enable_output_haplotagging,enable_phasing,enable_long_indel,gvcf,help,version -n 'run_clair3_nova.sh' -- "$@"`
 
 if [ $? != 0 ] ; then echo"No input. Terminating...">&2 ; exit 1 ; fi
 eval set -- "${ARGS}"
@@ -115,6 +118,9 @@ ENABLE_OUTPUT_HAPLOTAGGING=False
 ENABLE_LONG_INDEL=False
 PILEUP_PREFIX="pileup"
 NOVA_PREFIX="nova"
+BASE_ERR=0.05
+GQ_BIN_SIZE=5  
+KEEP_IUPAC_BASES=False 
 
 while true; do
    case "$1" in
@@ -149,6 +155,9 @@ while true; do
     --pileup_model_prefix ) PILEUP_PREFIX="$2"; shift 2 ;;
     --nova_model_prefix ) NOVA_PREFIX="$2"; shift 2 ;;
     --gvcf ) GVCF=True; shift 1 ;;
+    --base_err ) BASE_ERR="$2"; shift 2 ;;
+    --gq_bin_size ) GQ_BIN_SIZE="$2"; shift 2 ;;   
+    --keep_iupac_bases ) KEEP_IUPAC_BASES=True; shift 1 ;;
     --resumn ) RESUMN="$2"; shift 2 ;;
     --pileup_only ) PILEUP_ONLY=True; shift 1 ;;
     --pileup_phasing ) PILEUP_PHASING=True; shift 1 ;;
@@ -270,6 +279,9 @@ echo "[INFO] ENABLE OUTPUT GVCF: ${GVCF}"
 echo "[INFO] ENABLE INCLUDE ALL CTGS CALLING: ${INCLUDE_ALL_CTGS}"
 echo "[INFO] ENABLE PHASING VCF OUTPUT: ${ENABLE_OUTPUT_PHASING}"
 echo "[INFO] ENABLE HAPLOTAGGING BAM OUTPUT: ${ENABLE_OUTPUT_HAPLOTAGGING}"
+echo "[INFO] KEEP IUPAC BASE IN VCF OUTPUT: ${KEEP_IUPAC_BASES}"
+echo "[INFO] BASE ERROR IN GVCF: ${BASE_ERR}"
+echo "[INFO] GQ BIN SIZE IN GVCF: ${GQ_BIN_SIZE}" 
 echo $''
 
 # file check
@@ -325,6 +337,9 @@ if [ -z ${PHASING_PCT} ]; then echo -e "${ERROR} Use '--var_pct_phasing=FLOAT' i
 if [ -z ${PILEUP_PREFIX} ]; then echo -e "${ERROR} Use '--pileup_model_prefix=STR' instead of '--pileup_model_prefix STR' for optional parameters${NC}"; exit 1 ; fi
 if [ -z ${NOVA_PREFIX} ]; then echo -e "${ERROR} Use '--nova_model_prefix=STR' instead of '--nova_model_prefix STR' for optional parameters${NC}"; exit 1 ; fi
 if [ -z ${RESUMN} ]; then echo -e "${ERROR} Use '--resumn=0,1,2,3,4'for optional parameters${NC}"; exit 1 ; fi
+if [ -z ${BASE_ERR} ]; then echo -e "${ERROR} Use '--base_err=FLOAT' instead of '--base_err FLOAT' for optional parameters${NC}"; exit 1 ; fi
+if [ -z ${GQ_BIN_SIZE} ]; then echo -e "${ERROR} Use '--gq_bin_size=INT' instead of '--gq_bin_size INT' for optional parameters${NC}"; exit 1 ; fi
+
 
 # model prefix detection
 if [ ! -f ${MODEL_PATH_C3D}/${NOVA_PREFIX}.index ]; then echo -e "${ERROR} No nova model found in provided model path and model prefix ${MODEL_PATH_C3D}/${NOVA_PREFIX} ${NC}"; exit 1; fi
@@ -378,7 +393,10 @@ ${SCRIPT_PATH}/trio/Call_Clair3_Nova.sh \
     --remove_intermediate_dir=${RM_TMP_DIR} \
     --enable_phasing=${ENABLE_OUTPUT_PHASING} \
     --enable_output_haplotagging=${ENABLE_OUTPUT_HAPLOTAGGING} \
-    --enable_long_indel=${ENABLE_LONG_INDEL}
+    --enable_long_indel=${ENABLE_LONG_INDEL} \
+    --keep_iupac_bases=${KEEP_IUPAC_BASES} \
+    --base_err=${BASE_ERR} \
+    --gq_bin_size=${GQ_BIN_SIZE} \
 
 
 )) |& tee ${OUTPUT_FOLDER}/run_clair3_nova.log

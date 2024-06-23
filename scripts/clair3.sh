@@ -8,7 +8,7 @@ ARGS=`getopt -o b:f:t:m:p:o:r::c::s::h::g \
 -l bam_fn:,ref_fn:,threads:,model_path:,platform:,output:,\
 bed_fn::,vcf_fn::,ctg_name::,sample_name::,help::,qual::,samtools::,python::,pypy::,parallel::,whatshap::,chunk_num::,chunk_size::,var_pct_full::,var_pct_phasing::,\
 snp_min_af::,indel_min_af::,ref_pct_full::,pileup_only::,pileup_phasing::,fast_mode::,gvcf::,print_ref_calls::,haploid_precise::,haploid_sensitive::,include_all_ctgs::,\
-no_phasing_for_fa::,pileup_model_prefix::,fa_model_prefix::,call_snp_only::,remove_intermediate_dir::,enable_phasing::,enable_long_indel:: -n 'run_clair3.sh' -- "$@"`
+no_phasing_for_fa::,pileup_model_prefix::,fa_model_prefix::,base_err::,gq_bin_size::,call_snp_only::,remove_intermediate_dir::,enable_phasing::,keep_iupac_bases::,enable_long_indel:: -n 'run_clair3.sh' -- "$@"`
 
 if [ $? != 0 ] ; then echo"No input. Terminating...">&2 ; exit 1 ; fi
 eval set -- "${ARGS}"
@@ -46,6 +46,8 @@ while true; do
     --indel_min_af ) INDEL_AF="$2"; shift 2 ;;
     --pileup_model_prefix ) PILEUP_PREFIX="$2"; shift 2 ;;
     --fa_model_prefix ) FA_PREFIX="$2"; shift 2 ;;
+    --base_err ) BASE_ERR="$2"; shift 2 ;;
+    --gq_bin_size ) GQ_BIN_SIZE="$2"; shift 2 ;;
     --haploid_precise ) HAP_PRE="$2"; shift 2 ;;
     --haploid_sensitive ) HAP_SEN="$2"; shift 2 ;;
     --include_all_ctgs ) INCLUDE_ALL_CTGS="$2"; shift 2 ;;
@@ -53,6 +55,7 @@ while true; do
     --remove_intermediate_dir ) RM_TMP_DIR="$2"; shift 2 ;;
     --enable_phasing ) ENABLE_PHASING="$2"; shift 2 ;;
     --enable_long_indel ) ENABLE_LONG_INDEL="$2"; shift 2 ;;
+    --keep_iupac_bases ) KEEP_IUPAC_BASES="$2"; shift 2 ;;
 
     -- ) shift; break; ;;
     -h|--help ) print_help_messages; break ;;
@@ -135,11 +138,14 @@ time ${PARALLEL} --retries ${RETRIES} -C ' ' --joblog ${LOG_PATH}/parallel_1_cal
     --indel_min_af ${INDEL_AF} \
     --call_snp_only ${SNP_ONLY} \
     --gvcf ${GVCF} \
+    --base_err ${BASE_ERR} \
+    --gq_bin_size ${GQ_BIN_SIZE} \
     --enable_long_indel ${ENABLE_LONG_INDEL} \
     --python ${PYTHON} \
     --pypy ${PYPY} \
     --samtools ${SAMTOOLS} \
     --temp_file_dir ${GVCF_TMP_PATH} \
+    --keep_iupac_bases ${KEEP_IUPAC_BASES} \
     --pileup" :::: ${OUTPUT_FOLDER}/tmp/CHUNK_LIST |& tee ${LOG_PATH}/1_call_var_bam_pileup.log
 
 ${PYPY} ${CLAIR3} SortVcf \
@@ -255,6 +261,7 @@ time ${PARALLEL} --retries ${RETRIES} --joblog ${LOG_PATH}/parallel_6_call_var_b
     --python ${PYTHON} \
     --pypy ${PYPY} \
     --samtools ${SAMTOOLS} \
+    --keep_iupac_bases ${KEEP_IUPAC_BASES} \
     --platform ${PLATFORM}" :::: ${CANDIDATE_BED_PATH}/FULL_ALN_FILES |& tee ${LOG_PATH}/6_call_var_bam_full_alignment.log
 
 ${PYPY} ${CLAIR3} SortVcf \

@@ -25,18 +25,24 @@ Clair3-Nova is the 2nd generation of [Clair3-Trio](https://github.com/HKU-BAL/Cl
   + [Option 1. Docker pre-built image](#option-1-docker-pre-built-image)
   + [Option 2. Build an anaconda virtual environment](#option-2-build-an-anaconda-virtual-environment)
   + [Option 3. Docker Dockerfile](#option-3-docker-dockerfile)
+* [General Usage](#general-usage)
+* [Options](#options)
 * [Output Files](#output-files)
 * [How to get high-quality de novo variants from the output](#how-to-get-high-quality-de-novo-variants-from-the-output)
+* [Model Training](docs/trio/nova_training.md)
 ----
 
 ## Latest Updates
+*v0.3 (June 23, 2024)*: add r10.4.1 hac model and add base_err feature
+1. add r10 HAC model trained at HG002 trio
+2. add `--base_err` [flag](https://github.com/HKU-BAL/Clair3/issues/220) for reducing "./." in gvcf output
+3. add `--keep_iupac_bases` [flag](https://en.wikipedia.org/wiki/International_Union_of_Pure_and_Applied_Chemistry) to showing iupac char.
 
 *v0.2.1 (May 15, 2024)*: fix bugs of SelectCandidates_Trio.
 
 *v0.2 (Apr 2, 2024)*: added models for r10.4.1 and r9.4.1
 
 *v0.1 (Feb 6, 2024)*: Initial release.
-
 
 ----
 
@@ -47,6 +53,7 @@ Download models from [here](http://www.bio8.cs.hku.hk/clair3_trio/clair3_nova_mo
 |           Model name           |  Platform   |    Training samples         |   Date   |  Basecaller  | File    |          Link            |
 | :----------------------------: | :---------: | :----------------------------------------------------------: | -------------------------------- | :--------------------------: | ----------------| :-------------------: |
 |   r1041_e82_400bps_sup_nova |     ONT r10.4.1 E8.2 (5kHz)    |                         HG002,3,4      |             20240206 | Dorado v4.0.0 SUP | r1041_e82_400bps_sup_nova.tar.gz      | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_nova_models/r1041_e82_400bps_sup_nova.tar.gz) |
+|   r1041_e82_400bps_hac_nova |     ONT r10.4.1 E8.2 (5kHz)    |                         HG002,3,4      |             20240723 | Dorado v4.0.0 HAC | r1041_e82_400bps_hac_nova.tar.gz      | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_nova_models/r1041_e82_400bps_hac_nova.tar.gz) |
 |   r941_prom_sup_g5014_nova |     ONT r9.4.1 |                         HG002,3,4      |             20240330 | Guppy5 sup| r941_prom_sup_g5014_nova.tar.gz      | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_nova_models/r941_prom_sup_g5014_nova.tar.gz) |
 
 
@@ -58,12 +65,10 @@ When using the Clair3-Nova model, please use a corresponding Clair3 model for Pi
 |           Model name           |  Platform   |                       Training samples                       | Date   |  Basecaller  | File                                |                             Link                             |
 | :----------------------------: | :---------: | :----------------------------------------------------------: | -------------------------------- | :--------------------------: | ----------------------------------- | :----------------------------------------------------------: |
 |  r1041_e82_400bps_sup_v430  |     ONT r10.4.1 E8.2 (5kHz)  |       -   | - |  Dorado v4.3.0 SUP | r1041_e82_400bps_sup_v430.tar.gz          | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_models/r1041_e82_400bps_sup_v430.tar.gz) |
+|  r1041_e82_400bps_hac_v430  |     ONT r10.4.1 E8.2 (5kHz)  |       -   | - |  Dorado v4.3.0 HAC | r1041_e82_400bps_hac_v430.tar.gz          | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_models/r1041_e82_400bps_hac_v430.tar.gz) |
 |  r941_prom_sup_g5014 |     ONT r9.4.1 |       -   | - |  Guppyu5 sup | r941_prom_sup_g5014.tar.gz          | [Download](http://www.bio8.cs.hku.hk/clair3_trio/clair3_models/r941_prom_sup_g5014.tar.gz) |
 
-
-
 ----
-
 
 ## Installation
 
@@ -80,7 +85,6 @@ OUTPUT_DIR="[YOUR_OUTPUT_FOLDER]"          # e.g. /output
 THREADS="[MAXIMUM_THREADS]"                # e.g. 8
 MODEL_C3="[Clair3 MODEL NAME]"         	   # e.g. Clair3 model, e.g. r1041_e82_400bps_sup_v430
 MODEL_C3D="[Clair3-Trio MODEL NAME]"       # e.g. Clair3-Nova model, r1041_e82_400bps_sup_nova
-
 
 docker run -it \
   -v ${INPUT_DIR}:${INPUT_DIR} \
@@ -147,12 +151,10 @@ mkdir -p models/clair3_models
 wget http://www.bio8.cs.hku.hk/clair3_trio/clair3_models/clair3_models.tar.gz 
 tar -zxvf clair3_models.tar.gz -C ./models/clair3_models
 
-
 # download Clair3-Nova's pre-trained models
 mkdir -p models/clair3_nova_models
 wget http://www.bio8.cs.hku.hk/clair3_trio/clair3_nova_models/clair3_nova_models.tar.gz 
 tar -zxvf clair3_nova_models.tar.gz -C ./models/clair3_nova_models
-
 
 # run clair3-nova
 _INPUT_DIR="[YOUR_INPUT_FOLDER]"            # e.g. ./input
@@ -199,6 +201,85 @@ docker build -f ./Dockerfile -t hkubal/clair3-nova:latest .
 docker run -it hkubal/clair3-nova:latest /opt/bin/run_clair3_nova.sh --help
 ```
 
+### General Usage
+
+**Caution**:  Use `=value` for optional parameters, e.g. `--bed_fn=fn.bed` instead of `--bed_fn fn.bed`.
+
+```bash
+
+./run_clair3_nova.sh \
+  --bam_fn_c=${_BAM_C} \    
+  --bam_fn_p1=${_BAM_P1} \
+  --bam_fn_p2=${_BAM_P2} \
+  --output=${_OUTPUT_DIR} \
+  --ref_fn=${_REF} \
+  --threads=${_THREADS} \
+  --model_path_clair3="${_MODEL_DIR_C3}" \
+  --model_path_clair3_nova="${_MODEL_DIR_C3D}" \
+  --sample_name_c=${_SAMPLE_C} \
+  --sample_name_p1=${_SAMPLE_P1} \
+  --sample_name_p2=${_SAMPLE_P2}
+
+```
+
+### Options
+
+**Required parameters:**
+
+```bash
+--bam_fn_c=FILE                BAM file input, for child. The input file must be samtools indexed.
+--bam_fn_p1=FILE               BAM file input, for parent1. The input file must be samtools indexed.
+--bam_fn_p2=FILE               BAM file input, for parent1. The input file must be samtools indexed.
+--ref_fn=FILE                  FASTA reference file input. The input file must be samtools indexed.
+--model_path_clair3=STR        The folder path containing a Clair3 model (requiring six files in the folder, including pileup.data-00000-of-00002, pileup.data-00001-of-00002 pileup.index, full_alignment.data-0000
+0-of-00002, full_alignment.data-00001-of-00002  and full_alignment.index).                                                                                                                                      
+--model_path_clair3_nova=STR   The folder path containing a Clair3-Nova model (files structure same as Clair3).                                                                            
+-t, --threads=INT              Max #threads to be used. The full genome will be divided into small chunks for parallel processing. Each chunk will use 4 threads. The #chunks being processed simultaneously is ceil
+(#threads/4)*3. 3 is the overloading factor.                                                              
+-o, --output=PATH              VCF/GVCF output directory. 
+
+```
+
+**Other parameters:**
+
+**Caution**:  Use `=value` for optional parameters, e.g., `--bed_fn=fn.bed` instead of `--bed_fn fn.bed`
+
+```bash
+-v, --version                  Check Clair3-Nova version
+-h, --help                     Check Clair3-Nova help page
+--bed_fn=FILE                  Call variants only in the provided bed regions.
+--vcf_fn=FILE                  Candidate sites VCF file input, variants will only be called at the sites in the VCF file if provided.
+--ctg_name=STR                 The name of the sequence to be processed.
+--pileup_only                  Use the pileup model only when calling, default: disable.
+--pileup_phasing               Use the pileup model calling and phasing, default: disable.
+--sample_name_c=STR            Define the sample name for Child to be shown in the VCF file.[Child]
+--sample_name_p1=STR           Define the sample name for Parent1 to be shown in the VCF file.[Parent1]
+--sample_name_p2=STR           Define the sample name for Parent2 to be shown in the VCF file.[Parent2]
+--gvcf                         Enable GVCF output, default: disable.
+--qual=INT                     If set, variants with >=$qual will be marked PASS, or LowQual otherwise.
+--samtools=STR                 Path of samtools, samtools version >= 1.10 is required.
+--python=STR                   Path of python, python3 >= 3.6 is required.
+--pypy=STR                     Path of pypy3, pypy3 >= 3.6 is required.
+--parallel=STR                 Path of parallel, parallel >= 20191122 is required.
+--whatshap=STR                 Path of whatshap, whatshap >= 1.0 is required.
+--chunk_size=INT               The size of each chuck for parallel processing, default: 5000000.
+--print_ref_calls              Show reference calls (0/0) in VCF file, default: disable.
+--include_all_ctgs             Call variants on all contigs, otherwise call in chr{1..22,X,Y} and {1..22,X,Y}, default: disable.
+--snp_min_af=FLOAT             Minimum SNP AF required for a candidate variant. Lowering the value might increase a bit of sensitivity in trade of speed and accuracy, default: ont:0.08.
+--indel_min_af=FLOAT           Minimum Indel AF required for a candidate variant. Lowering the value might increase a bit of sensitivity in trade of speed and accuracy, default: ont:0.15.
+--nova_model_prefix=STR        Model prefix in trio & nova calling, including $prefix.data-00000-of-00002, $prefix.data-00001-of-00002 $prefix.index, default: nova.
+--enable_output_phasing        Output phased variants using whatshap, default: disable.
+--enable_output_haplotagging   Output enable_output_haplotagging BAM variants using whatshap, default: disable.
+--enable_phasing               It means `--enable_output_phasing`. The option is retained for backward compatibility.
+--var_pct_full=FLOAT           EXPERIMENTAL: Specify an expected percentage of low quality 0/1 and 1/1 variants called in the pileup mode for full-alignment mode calling, default: 0.3.
+--ref_pct_full=FLOAT           EXPERIMENTAL: Specify an expected percentage of low quality 0/0 variants called in the pileup mode for full-alignment mode calling, default:  0.1 .
+--var_pct_phasing=FLOAT        EXPERIMENTAL: Specify an expected percentage of high quality 0/1 variants used in WhatsHap phasing, default: 0.8 for ont guppy5 and 0.7 for other platforms.
+--pileup_model_prefix=STR      EXPERIMENTAL: Model prefix in pileup calling, including $prefix.data-00000-of-00002, $prefix.data-00001-of-00002 $prefix.index. default: pileup.
+--keep_iupac_bases             EXPERIMENTAL: Keep IUPAC reference and alternate bases, default: convert all IUPAC bases to N.
+--base_err=FLOAT               EXPERIMENTAL: Estimated base error rate when enabling gvcf option, default: 0.05 (set smaller will increase reduce the number of ./. output).
+--gq_bin_size=INT              EXPERIMENTAL: Default gq bin size for merge non-variant block when enabling gvcf option, default: 5.
+
+```
 
 ## Output Files
 

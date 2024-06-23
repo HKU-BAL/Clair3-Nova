@@ -20,7 +20,8 @@ from clair3.task.gt21 import (
 #import clair3.utils as utils
 import trio.utils as utils
 from clair3.task.genotype import Genotype, genotype_string_from, genotype_enum_from, genotype_enum_for_task
-from shared.utils import IUPAC_base_to_ACGT_base_dict as BASE2ACGT, BASIC_BASES, str2bool, file_path_from, log_error, log_warning
+from shared.utils import IUPAC_base_to_ACGT_base_dict as BASE2ACGT, BASIC_BASES, str2bool, file_path_from, \
+    log_error, log_warning, convert_iupac_to_n
 from clair3.task.variant_length import VariantLength
 import trio.model as model_path
 
@@ -49,7 +50,8 @@ OutputConfig = namedtuple('OutputConfig', [
     'gvcf',
     'pileup',
     'trio_n_id',
-    'model_arc'
+    'model_arc',
+    'keep_iupac_bases'
 ])
 OutputUtilities = namedtuple('OutputUtilities', [
     'print_debug_message',
@@ -203,7 +205,8 @@ def Run(args):
         gvcf=args.gvcf,
         pileup=args.pileup,
         trio_n_id=args.trio_n_id,
-        model_arc=args.model_arc
+        model_arc=args.model_arc,
+        keep_iupac_bases=args.keep_iupac_bases,
     )
     output_utilities = output_utilties_from(
         sample_name=args.sampleName,
@@ -247,7 +250,8 @@ def Run_call_trio(args):
         gvcf=args.gvcf,
         pileup=args.pileup,
         trio_n_id=0,
-        model_arc=args.model_arc
+        model_arc=args.model_arc,
+        keep_iupac_bases=args.keep_iupac_bases,
     )
     #output_utilities_c = output_utilties_from(
     output_utilities_c = output_utilties_class(
@@ -275,7 +279,8 @@ def Run_call_trio(args):
         gvcf=args.gvcf,
         pileup=args.pileup,
         trio_n_id=1,
-        model_arc=args.model_arc
+        model_arc=args.model_arc,
+        keep_iupac_bases=args.keep_iupac_bases,
     )
     #output_utilities_p1 = output_utilties_from(
     output_utilities_p1 = output_utilties_class(
@@ -302,7 +307,8 @@ def Run_call_trio(args):
         gvcf=args.gvcf,
         pileup=args.pileup,
         trio_n_id=2,
-        model_arc=args.model_arc
+        model_arc=args.model_arc,
+        keep_iupac_bases=args.keep_iupac_bases,
     )
 
     #output_utilities_p2 = output_utilties_from(
@@ -1430,6 +1436,10 @@ def output_with(
         is_reference=is_reference
     )
 
+    if not output_config.keep_iupac_bases:
+        reference_base = convert_iupac_to_n(reference_base)
+        alternate_base = convert_iupac_to_n(alternate_base)
+    
     if output_config.is_debug:
         output_utilities.print_debug_message(
             chromosome,
@@ -1930,6 +1940,9 @@ def main():
 
     parser.add_argument('--haploid_sensitive', action='store_true',
                         help="EXPERIMENTAL: Enable haploid calling mode. 0/1 and 1/1 are considered as a variant")
+
+    parser.add_argument('--keep_iupac_bases', type=str2bool, default=False,
+                        help="EXPERIMENTAL: Keep IUPAC (non ACGTN) reference and alternate bases, default: convert all IUPAC bases to N")
 
     # options for debug purpose
     parser.add_argument('--use_gpu', type=str2bool, default=False,

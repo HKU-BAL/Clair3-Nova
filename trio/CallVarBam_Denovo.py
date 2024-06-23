@@ -122,6 +122,7 @@ def Run(args):
     # fast_mode = CommandOption('fast_mode', args.fast_mode)
     # call_snp_only_mode = CommandOption('call_snp_only', args.call_snp_only)
     gvcf_mode = CommandOption('gvcf', args.gvcf)
+    keep_iupac_bases_mode = CommandOption('keep_iupac_bases', args.keep_iupac_bases)
 
     ctgStart = None
     ctgEnd = None
@@ -198,6 +199,7 @@ def Run(args):
         chunk_id,
         chunk_num,
         gvcf_mode,
+        keep_iupac_bases_mode,
     ]
     #print(' '.join(shlex.split(command_string_from(create_tensor_command_options))))
     #print(' '.join(shlex.split(command_string_from(call_variant_command_options))))
@@ -308,6 +310,9 @@ def main():
 
     parser.add_argument('--max_depth', type=int, default=144,
                         help="EXPERIMENTAL: Maximum full alignment depth to be processed. default: %(default)s")
+    parser.add_argument('--keep_iupac_bases', type=str2bool, default=False,
+                        help="EXPERIMENTAL: Keep IUPAC (non ACGTN) reference and alternate bases, default: convert all IUPAC bases to N")
+
 
     # options for debug purpose
     parser.add_argument('--phasing_info_in_bam', action='store_true',

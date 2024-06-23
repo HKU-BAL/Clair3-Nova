@@ -1,10 +1,5 @@
 # Clair3 Representation Unification
 
-
-
-
-
-
 ## Introduction
 
 This document shows how to unify the representation between the training materials and true variant set.

@@ -22,7 +22,7 @@ min_coverage = 2
 tensorflow_threads = 4
 
 #GVCF parameters
-base_err = 0.001
+base_err = 0.05
 gq_bin_size = 5
 
 #Pileup input feature list
