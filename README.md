@@ -33,6 +33,7 @@ Clair3-Nova is the 2nd generation of [Clair3-Trio](https://github.com/HKU-BAL/Cl
 ----
 
 ## Latest Updates
+*v0.3.1 (July 9, 2024)*: fix bug in multiple alternative sites
 *v0.3 (June 23, 2024)*: add r10.4.1 hac model and add base_err feature
 1. add r10 HAC model trained at HG002 trio
 2. add `--base_err` [flag](https://github.com/HKU-BAL/Clair3/issues/220) for reducing "./." in gvcf output

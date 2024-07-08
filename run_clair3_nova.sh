@@ -5,7 +5,7 @@ Usage="Usage: ./${SCRIPT_NAME} --bam_fn_c=BAM --bam_fn_p1=BAM --bam_fn_p2=BAM --
 CMD="$0 $@"
 
 # ENTRANCE SCRIPT FOR CLAIR3-TRIO, SETTING VARIABLE AND CALL TRIO
-VERSION='v0.3'
+VERSION='v0.3.1'
 
 set -e
 print_help_messages()
