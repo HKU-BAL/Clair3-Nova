@@ -33,8 +33,17 @@ Clair3-Nova is the 2nd generation of [Clair3-Trio](https://github.com/HKU-BAL/Cl
 ----
 
 ## Latest Updates
-*v0.3.1 (July 9, 2024)*: fix bug in multiple alternative sites
-*v0.3 (June 23, 2024)*: add r10.4.1 hac model and add base_err feature
+*v0.3.2 (Sep 24, 2024)*: 
+
+1. add "INFO/DNP" score for all child's "0/1" output;
+2. add "INFO/HDN" tag for "high quality de novo variant", default configured as DNP > 0.8;
+3. add reference call in gVCF output;
+4. add "INFO/RPL" tag for saving reference PL score for gvcf output.
+
+*v0.3.1 (July 9, 2024)*: fix bug in multiple alternative sites.
+
+*v0.3 (June 23, 2024)*: add r10.4.1 hac model and add base_err feature.
+
 1. add r10 HAC model trained at HG002 trio
 2. add `--base_err` [flag](https://github.com/HKU-BAL/Clair3/issues/220) for reducing "./." in gvcf output
 3. add `--keep_iupac_bases` [flag](https://en.wikipedia.org/wiki/International_Union_of_Pure_and_Applied_Chemistry) to showing iupac char.

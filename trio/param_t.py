@@ -1,5 +1,5 @@
 TOOL_NAME = "clair3_nova"
-VERSION='v0.3.1'
+VERSION='v0.3.2'
 
 from itertools import accumulate
 
@@ -75,3 +75,6 @@ padding_value_c = "30"
 padding_value_p1 = "60"
 padding_value_p2 = "90"
 
+
+high_DNP_p = 0.8
+output_DNP_p = 0.5

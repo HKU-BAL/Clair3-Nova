@@ -115,6 +115,7 @@ class gvcfGenerator(object):
                 cur_variant_start = int(line.strip('\n').split('\t')[1])
                 cur_variant_end = cur_variant_start - 1 + len(ref)
                 is_reference_call = (alt == '.') or (ref == alt)
+                #import pdb; pdb.set_trace()
                 if not is_reference_call:
                 # assuming AD is at the columns [-3], add 0 to AD for gVCF
                     ori_info = tmp[-1].split(':')
@@ -125,14 +126,36 @@ class gvcfGenerator(object):
                     # add <NON_REF> to variant calls
                     tmp[4] = tmp[4] + ',<NON_REF>'
                     if (n_alt == 1):
-
                         tmp[-1] = tmp[-1] + ',990,990,990'
-
                     elif (n_alt == 2):
                         tmp[-1] = tmp[-1] + ',990,990,990,990'
                 else:
-                    # skip reference calls
-                    continue
+                    # reference calls
+                    # original order GT:GQ:DP:AD:AF:PL
+                    # assuming AD is at the columns [-3]
+                    ori_info = tmp[-1].split(':')
+
+                    # update DP to MIN_DP
+                    t_n = tmp[-2].split(":")
+                    t_n[2] = "MIN_DP"
+                    tmp[-2] = ":".join(t_n)
+
+                    # set AD field
+                    _dp = int(ori_info[2])
+                    _ad = int(ori_info[3])
+                    new_ad = "%s,%s" % (_ad, _dp-_ad)
+                    ori_info[3] = new_ad
+
+                    # get pl and update INFO tage
+                    _rpl = tmp[7].split(';')[1].split("=")[1]
+                    ori_info[-1] = _rpl
+                    tmp[7] = tmp[7].split(';')[0] + ";END=%s" % (tmp[1])
+                    tmp[-1] = ':'.join(ori_info)
+
+                    # add <NON_REF> to variant calls
+                    tmp[4] = '<NON_REF>'
+                #import pdb; pdb.set_trace()
+
                 new_line = '\t'.join(tmp)
 
                 cur_variant_chr = tmp[0]

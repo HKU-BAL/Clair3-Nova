@@ -22,7 +22,9 @@ def get_header(tmp_path=None, sample_name="TMP"):
             ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth (reads with MQ<20 or selected by 'samtools view -F 2316' are filtered)">
             ##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
             ##FORMAT=<ID=PL,Number=G,Type=Integer,Description="Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification">
+            ##INFO=<ID=RPL,Number=.,Type=String,Description="For reference call's Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification">
             ##INFO=<ID=DNP,Number=.,Type=Float,Description="de novo variant probability">
+            ##INFO=<ID=HDN,Number=0,Type=Flag,Description="is high quality de novo variant">
             ##FORMAT=<ID=AF,Number=1,Type=Float,Description="Observed allele frequency in reads, for each ALT allele, in the same order as listed, or the REF allele for a RefCall">\n"""
                       )
 

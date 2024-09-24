@@ -178,7 +178,9 @@ def output_header(output_fn, reference_file_path, sample_name=None, cmdline=None
         ##INFO=<ID=P,Number=0,Type=Flag,Description="Result from pileup calling">
         ##INFO=<ID=F,Number=0,Type=Flag,Description="Result from full-alignment calling">
         ##INFO=<ID=T,Number=0,Type=Flag,Description="Result from trio calling">
+        ##INFO=<ID=RPL,Number=.,Type=String,Description="For reference call's Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification">
         ##INFO=<ID=DNP,Number=.,Type=Float,Description="de novo variant probability">
+        ##INFO=<ID=HDN,Number=0,Type=Flag,Description="is high quality de novo variant">
         ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
         ##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
         ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth (reads with MQ<20 or selected by 'samtools view -F 2316' are filtered)">

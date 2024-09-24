@@ -1458,18 +1458,25 @@ def output_with(
         allele_frequency_s = "%.4f" % allele_frequency if len(alt_list_count) <= 1 else \
                 ','.join(["%.4f" % (min(1.0, 1.0 * item / read_depth))  for item in alt_list_count])
 
-
         #import pdb; pdb.set_trace()
         DNP_info=""
-        if output_config.is_denovo:
-            DNP_info = ";DNP=%.3f" % denovo_probabilities[1] if denovo_probabilities[1] > denovo_probabilities[0] else ""
+        if output_config.is_denovo and output_config.trio_n_id == 0:
+            #DNP_info = ";DNP=%.3f" % denovo_probabilities[1] if denovo_probabilities[1] > denovo_probabilities[0] else ""
+            DNP_info = ";DNP=%.3f" % denovo_probabilities[1] if ((denovo_probabilities[1] >= param.output_DNP_p) or (genotype_string == "0/1")) else ""
+            if denovo_probabilities[1] >= param.high_DNP_p:
+                DNP_info += ";HDN"
+
 
         ##INFO=<ID=DNP,Number=.,Type=Float,Description="de novo variant probability">
-        
         if output_config.gvcf:
             PLs = compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, reference_base,
                                  alternate_base)
             PLs = ','.join([str(x) for x in PLs])
+            if alternate_base == ".":
+                RPLs = compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, reference_base, 
+                        alternate_base, is_output_ref_pl = True)
+                RPLs = [str(x) for x in RPLs]
+                information_string += ";RPL=%s" % (",".join(RPLs))
 
             output_utilities.output("%s\t%d\t.\t%s\t%s\t%.2f\t%s\t%s%s\tGT:GQ:DP:AD:AF:PL\t%s:%d:%d:%s:%s:%s" % (
                     chromosome,
@@ -1506,7 +1513,7 @@ def output_with(
 
 
 
-def compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, reference_base, alternate_base):
+def compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, reference_base, alternate_base, is_output_ref_pl=False):
     '''
     PL computation
     for bi-allelic: AA(00), AB(01), BB(11)
@@ -1531,7 +1538,11 @@ def compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, refe
         except:
             #skip N positions
             if alternate_base == ".":
-                return [990]
+                # for ref call, set PL as p(ref), p(non_ref)
+                if is_output_ref_pl:
+                    break
+                else:
+                    return [990]
             else:
                 return [990] * len(genotypes[alt_num])
         genotype_prob_21 = gt21_probabilities[gt21_prob_index]
@@ -1544,7 +1555,15 @@ def compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, refe
         _p = genotype_prob_21 * genotype_prob_zygosity
         # _p = genotype_prob_21
         likelihoods.append(_p)
-        pass
+
+    # for reference call, compute pl as [p_ref, p_alt, p_alt^2]
+    if is_output_ref_pl and alternate_base == ".":
+        #likelihoods.append(1-likelihoods[-1])
+        try:
+            _rp = math.sqrt(1 - likelihoods[-1] + 0.25) - 0.5
+            likelihoods += [_rp, _rp**2]
+        except:
+            return [990] * 3
 
     # genotype likelihood normalization
     # p/sum(p)

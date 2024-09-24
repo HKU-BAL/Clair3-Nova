@@ -272,6 +272,7 @@ def output_utilties_from(
             ##FILTER=<ID=RefCall,Description="Reference call">
             ##INFO=<ID=P,Number=0,Type=Flag,Description="Result from pileup calling">
             ##INFO=<ID=F,Number=0,Type=Flag,Description="Result from full-alignment calling">
+            ##INFO=<ID=RPL,Number=.,Type=String,Description="For reference call's Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification">
             ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
             ##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
             ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth (reads with MQ<20 or selected by 'samtools view -F 2316' are filtered)">
@@ -1331,9 +1332,14 @@ def output_with(
                 ','.join(["%.4f" % (min(1.0, 1.0 * item / read_depth))  for item in alt_list_count])
 
         if output_config.gvcf:
-            PLs = compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, reference_base,
-                                 alternate_base)
+            PLs = compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, reference_base, alternate_base)
             PLs = ','.join([str(x) for x in PLs])
+            if alternate_base == ".":
+                RPLs = compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, reference_base, 
+                        alternate_base, is_output_ref_pl = True)
+                RPLs = [str(x) for x in RPLs]
+                information_string += ";RPL=%s" % (",".join(RPLs))
+
 
             output_utilities.output("%s\t%d\t.\t%s\t%s\t%.2f\t%s\t%s\tGT:GQ:DP:AD:AF:PL\t%s:%d:%d:%s:%s:%s" % (
                     chromosome,
@@ -1368,7 +1374,7 @@ def output_with(
 
 
 
-def compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, reference_base, alternate_base):
+def compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, reference_base, alternate_base, is_output_ref_pl=False):
     '''
     PL computation
     for bi-allelic: AA(00), AB(01), BB(11)
@@ -1393,7 +1399,10 @@ def compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, refe
         except:
             #skip N positions
             if alternate_base == ".":
-                return [990]
+                if is_output_ref_pl:
+                    break
+                else:
+                    return [990]
             else:
                 return [990] * len(genotypes[alt_num])
         genotype_prob_21 = gt21_probabilities[gt21_prob_index]
@@ -1406,7 +1415,16 @@ def compute_PL(genotype_string, genotype_probabilities, gt21_probabilities, refe
         _p = genotype_prob_21 * genotype_prob_zygosity
         # _p = genotype_prob_21
         likelihoods.append(_p)
-        pass
+
+    # for reference call, compute pl as [p_ref, p_alt, p_alt^2]
+    if is_output_ref_pl and alternate_base == ".":
+        #likelihoods.append(1-likelihoods[-1])
+        try:
+            _rp = math.sqrt(1 - likelihoods[-1] + 0.25) - 0.5
+            likelihoods += [_rp, _rp**2]
+        except:
+            return [990] * 3
+
 
     # genotype likelihood normalization
     # p/sum(p)
