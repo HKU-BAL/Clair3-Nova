@@ -428,10 +428,11 @@ then
         --output ${OUTPUT_FOLDER}/phased_{1}.bam \
         --reference ${REFERENCE_FILE_PATH} \
         --ignore-read-groups \
+        --skip-missing-contigs \
         ${OUTPUT_FOLDER}/phased_{1}.vcf.gz \
         {2}"  ::: ${ALL_SAMPLE[@]} :::+ ${ALL_UNPHASED_BAM_FILE_PATH[@]} |& tee ${LOG_PATH}/5_haplotag.log
 
-    time ${PARALLEL} --retries ${RETRIES} --joblog ${LOG_PATH}/parallel_5_haptag.log -j${THREADS} \
+    time ${PARALLEL} --retries ${RETRIES} --joblog ${LOG_PATH}/parallel_5_haptag_idx.log -j${THREADS} \
     "${SAMTOOLS} index -@12 \
         ${OUTPUT_FOLDER}/phased_{1}.bam" ::: ${ALL_SAMPLE[@]}
 
