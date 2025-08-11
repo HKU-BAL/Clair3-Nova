@@ -6,6 +6,7 @@ CMD="$0 $@"
 
 # ENTRANCE SCRIPT FOR CLAIR3-TRIO, SETTING VARIABLE AND CALL TRIO
 VERSION='v0.3.1'
+QUAL=2
 
 set -e
 print_help_messages()
@@ -36,7 +37,7 @@ print_help_messages()
     echo $'--sample_name_p1=STR           Define the sample name for Parent1 to be shown in the VCF file.[Parent1]'
     echo $'--sample_name_p2=STR           Define the sample name for Parent2 to be shown in the VCF file.[Parent2]'
     echo $'--gvcf                         Enable GVCF output, default: disable.'
-    echo $'--qual=INT                     If set, variants with >=$qual will be marked PASS, or LowQual otherwise.'
+    echo $"--qual=INT                     If set, variants with >=${QUAL} will be marked PASS, or LowQual otherwise."
     echo $'--samtools=STR                 Path of samtools, samtools version >= 1.10 is required.'
     echo $'--python=STR                   Path of python, python3 >= 3.6 is required.'
     echo $'--pypy=STR                     Path of pypy3, pypy3 >= 3.6 is required.'
@@ -94,7 +95,6 @@ WHATSHAP='whatshap'
 PLATFORM=ont
 CHUNK_NUM=0
 CHUNK_SIZE=5000000
-QUAL=2
 PHASING_PCT="0"
 PRO=0.3
 REF_PRO=0
